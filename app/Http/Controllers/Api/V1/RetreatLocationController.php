@@ -49,6 +49,7 @@ class RetreatLocationController extends Controller
                 return [
                     'participant_id' => $participant->id,
                     'name' => $participant->name,
+                    'gender' => $participant->gender ?? null,
                     'vehicle_color' => $participant->vehicle_color,
                     'vehicle_description' => $participant->vehicle_description,
                     'is_leader' => (bool) $participant->is_leader,
@@ -82,4 +83,3 @@ class RetreatLocationController extends Controller
         ]);
     }
 }
-

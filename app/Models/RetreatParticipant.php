@@ -12,6 +12,7 @@ class RetreatParticipant extends Model
     protected $fillable = [
         'retreat_id',
         'name',
+        'gender',
         'device_token',
         'expo_push_token',
         'vehicle_color',
@@ -50,4 +51,3 @@ class RetreatParticipant extends Model
         return $this->hasMany(RetreatMessage::class, 'participant_id');
     }
 }
-

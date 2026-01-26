@@ -50,7 +50,7 @@ class RetreatMessageController extends Controller
         $limit = min((int) ($request->query('limit') ?? 50), 100);
 
         $query = $retreat->messages()
-            ->with('participant:id,name,is_leader')
+            ->with('participant')
             ->orderBy('created_at', 'desc')
             ->limit($limit);
 
@@ -67,6 +67,7 @@ class RetreatMessageController extends Controller
                     'id' => $message->participant->id,
                     'name' => $message->participant->name,
                     'is_leader' => (bool) $message->participant->is_leader,
+                    'gender' => $message->participant->gender ?? null,
                 ],
                 'location' => $message->latitude ? [
                     'lat' => (float) $message->latitude,
@@ -87,4 +88,3 @@ class RetreatMessageController extends Controller
         ]);
     }
 }
-

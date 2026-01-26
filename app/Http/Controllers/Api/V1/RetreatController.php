@@ -8,6 +8,7 @@ use App\Models\Retreat;
 use App\Models\RetreatParticipant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class RetreatController extends Controller
@@ -29,6 +30,9 @@ class RetreatController extends Controller
         $participant = RetreatParticipant::create([
             'retreat_id' => $retreat->id,
             'name' => $request->validated('name'),
+            'gender' => Schema::hasColumn('retreat_participants', 'gender')
+                ? $request->validated('gender')
+                : null,
             'device_token' => Str::uuid()->toString(),
             'expo_push_token' => $request->validated('expo_push_token'),
             'vehicle_color' => $request->validated('vehicle_color'),
@@ -115,4 +119,3 @@ class RetreatController extends Controller
         return response()->json(['data' => $waypoints]);
     }
 }
-

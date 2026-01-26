@@ -18,6 +18,7 @@ class JoinRetreatRequest extends FormRequest
         return [
             'code' => 'required|string|min:4|max:12',
             'name' => 'required|string|min:2|max:50',
+            'gender' => 'nullable|string|in:male,female',
             'vehicle_color' => 'nullable|string|max:30',
             'vehicle_description' => 'nullable|string|max:50',
             'expo_push_token' => 'nullable|string|max:255',
@@ -34,4 +35,3 @@ class JoinRetreatRequest extends FormRequest
         );
     }
 }
-
