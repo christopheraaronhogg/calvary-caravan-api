@@ -15,6 +15,7 @@ class RetreatParticipant extends Model
         'gender',
         'device_token',
         'expo_push_token',
+        'avatar_path',
         'vehicle_color',
         'vehicle_description',
         'is_leader',
@@ -28,7 +29,9 @@ class RetreatParticipant extends Model
         'last_seen_at' => 'datetime',
     ];
 
-    protected $hidden = ['device_token', 'expo_push_token'];
+    protected $appends = ['avatar_url'];
+
+    protected $hidden = ['device_token', 'expo_push_token', 'avatar_path'];
 
     public function retreat(): BelongsTo
     {
@@ -49,5 +52,14 @@ class RetreatParticipant extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(RetreatMessage::class, 'participant_id');
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar_path) {
+            return null;
+        }
+
+        return url('storage/'.$this->avatar_path);
     }
 }

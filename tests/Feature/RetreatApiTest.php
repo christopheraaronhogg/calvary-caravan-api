@@ -61,7 +61,7 @@ class RetreatApiTest extends TestCase
         ])->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    'participant' => ['id', 'name', 'is_leader'],
+                    'participant' => ['id', 'name', 'is_leader', 'avatar_url'],
                     'retreat' => ['id', 'name', 'destination', 'starts_at', 'ends_at', 'participant_count'],
                 ],
             ]);
@@ -85,7 +85,7 @@ class RetreatApiTest extends TestCase
         ])->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    ['participant_id', 'name', 'vehicle_color', 'vehicle_description', 'is_leader', 'is_current_user', 'location', 'last_seen_seconds_ago'],
+                    ['participant_id', 'name', 'avatar_url', 'vehicle_color', 'vehicle_description', 'is_leader', 'is_current_user', 'location', 'last_seen_seconds_ago'],
                 ],
                 'meta' => ['total_participants', 'online_count', 'server_time'],
             ]);
@@ -122,6 +122,31 @@ class RetreatApiTest extends TestCase
         $this->getJson('/api/v1/retreat/status', [
             'X-Device-Token' => $token,
         ])->assertStatus(401);
+    }
+
+    public function test_profile_photo_can_be_set_and_cleared(): void
+    {
+        $this->createActiveRetreat(['code' => 'TEST26']);
+
+        $join = $this->postJson('/api/v1/retreat/join', [
+            'code' => 'TEST26',
+            'name' => 'Tester',
+        ])->assertOk()->json('data');
+
+        $token = $join['device_token'];
+        $tinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAgMBgG8M3r4AAAAASUVORK5CYII=';
+
+        $photoUpdate = $this->postJson('/api/v1/retreat/profile-photo', [
+            'avatar_base64' => $tinyPng,
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertOk()->assertJsonStructure(['data' => ['avatar_url']]);
+
+        $this->assertStringContainsString('/storage/retreat-avatars/', $photoUpdate->json('data.avatar_url'));
+
+        $this->deleteJson('/api/v1/retreat/profile-photo', [], [
+            'X-Device-Token' => $token,
+        ])->assertOk()->assertJsonPath('data.avatar_url', null);
     }
 }
 

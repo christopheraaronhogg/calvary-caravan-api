@@ -68,6 +68,7 @@ class RetreatMessageController extends Controller
                     'name' => $message->participant->name,
                     'is_leader' => (bool) $message->participant->is_leader,
                     'gender' => $message->participant->gender ?? null,
+                    'avatar_url' => $message->participant->avatar_url,
                 ],
                 'location' => $message->latitude ? [
                     'lat' => (float) $message->latitude,

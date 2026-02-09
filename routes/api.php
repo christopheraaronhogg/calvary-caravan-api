@@ -15,6 +15,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/leave', [RetreatController::class, 'leave']);
             Route::get('/status', [RetreatController::class, 'status']);
             Route::get('/waypoints', [RetreatController::class, 'waypoints']);
+            Route::post('/profile-photo', [RetreatController::class, 'updateProfilePhoto']);
+            Route::delete('/profile-photo', [RetreatController::class, 'removeProfilePhoto']);
 
             // Location updates
             Route::post('/location', [RetreatLocationController::class, 'update']);
