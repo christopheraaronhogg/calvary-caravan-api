@@ -1,0 +1,16 @@
+id,area,requirement,status,owner,evidence_or_path,notes
+AS1,App Info,App name/subtitle/category/copyright prepared,done,MiniHogg,docs/app-store/metadata.en-US.md,Review and tweak category before submit
+AS2,App Privacy,Privacy Policy URL live,done,MiniHogg,https://calvarycaravan.on-forge.com/privacy,Required by Apple
+AS3,Support,Support URL live,done,MiniHogg,https://calvarycaravan.on-forge.com/support,Ensure contact details remain current
+AS4,Metadata,Description/promotional text/keywords drafted,done,MiniHogg,docs/app-store/metadata.en-US.md,Paste into App Store Connect
+AS5,Review Info,App Review notes/contact template prepared,done,MiniHogg,docs/app-store/review-info.en-US.md,Fill final contact fields
+AS6,Screenshots,Screenshot shot list and folder layout prepared,done,MiniHogg,docs/app-store/screenshot-shotlist.md;artifacts/app-store/ios/iphone-6.9/en-US/,Need to capture final images
+AS7,Assets,1024x1024 iOS AppIcon has no alpha,done,MiniHogg,nativephp/ios/NativePHP/Assets.xcassets/AppIcon.appiconset/icon.png,Alpha removed
+AS8,Build Signing,IOS_TEAM_ID and iOS signing cert/profile env values set,blocked,CodeHogg/.env,.env + credentials files,Required for upload
+AS9,App Store API,APP_STORE_API_KEY_PATH/ID/ISSUER set,blocked,CodeHogg/.env,.env + API key file,Needed for automated upload
+AS10,Keychain,Valid Apple code-signing identity present,blocked,CodeHogg,security find-identity -v -p codesigning,Currently failing preflight
+AS11,Screenshots Upload,At least 1-5 final iPhone screenshots ready,blocked,MiniHogg+CodeHogg,artifacts/app-store/ios/iphone-6.9/en-US/,Capture on simulator/device
+AS12,Compliance,App privacy questionnaire answered/published,blocked,CodeHogg (ASC),App Store Connect > App Privacy,Role-gated action
+AS13,Compliance,Export compliance answered (and docs uploaded if required),blocked,CodeHogg (ASC),App Store Connect > App Information,Role-gated action
+AS14,Submission,Add build for review + submit to App Review,blocked,CodeHogg (ASC),App Store Connect submission flow,Final submit step
+AS15,Account,Apple Developer membership paid/active,blocked,CodeHogg,Apple Developer account,Required before production submission

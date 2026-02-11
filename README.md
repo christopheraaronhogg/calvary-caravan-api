@@ -54,6 +54,15 @@ Detailed guides:
 
 - `docs/nativephp-mobile-bootstrap.md`
 - `docs/nativephp-svelte-bootstrap.md`
+- `docs/app-store/README.md` (App Store metadata/review/screenshots readiness kit)
+
+Submission readiness checks:
+
+```bash
+./scripts/nativephp-preflight.sh
+./scripts/nativephp-fix-appicon.sh
+./scripts/appstore-readiness.sh
+```
 
 ## Laravel Forge notes
 
