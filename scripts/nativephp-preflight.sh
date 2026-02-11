@@ -111,6 +111,7 @@ header "Env keys (required for packaging)"
 check_env_key NATIVEPHP_APP_ID required
 check_env_key NATIVEPHP_APP_VERSION required
 check_env_key NATIVEPHP_APP_VERSION_CODE required
+check_env_key NATIVEPHP_START_URL required
 check_env_key IOS_TEAM_ID required
 check_env_key ANDROID_KEYSTORE_FILE required
 check_env_key ANDROID_KEYSTORE_PASSWORD required

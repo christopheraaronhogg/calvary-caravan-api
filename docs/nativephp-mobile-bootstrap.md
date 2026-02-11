@@ -61,13 +61,13 @@ xcrun simctl list devices
 Run iOS debug build on simulator:
 
 ```bash
-php artisan native:run ios <SIMULATOR_UDID> --build=debug --no-tty
+php artisan native:run ios <SIMULATOR_UDID> --build=debug --start-url=/mobile/index.html --no-tty
 ```
 
 Run Android debug build:
 
 ```bash
-php artisan native:run android --build=debug --no-tty
+php artisan native:run android --build=debug --start-url=/mobile/index.html --no-tty
 ```
 
 ---

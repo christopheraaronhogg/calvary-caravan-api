@@ -38,6 +38,7 @@ ensure_env_key() {
 ensure_env_key "NATIVEPHP_APP_ID" "com.calvarybaptist.calvarycaravan"
 ensure_env_key "NATIVEPHP_APP_VERSION" "DEBUG"
 ensure_env_key "NATIVEPHP_APP_VERSION_CODE" "1"
+ensure_env_key "NATIVEPHP_START_URL" "/mobile/index.html"
 
 # Install / refresh native projects
 php artisan native:install both --without-icu --force --no-interaction
