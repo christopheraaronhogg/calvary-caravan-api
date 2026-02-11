@@ -32,6 +32,21 @@ Run tests:
 php artisan test
 ```
 
+## NativePHP mobile (iOS + Android)
+
+This repo now includes a NativePHP bootstrap for shipping a Laravel-powered mobile build.
+
+Quick start:
+
+```bash
+./scripts/nativephp-bootstrap.sh
+./scripts/nativephp-preflight.sh
+```
+
+Detailed guide:
+
+- `docs/nativephp-mobile-bootstrap.md`
+
 ## Laravel Forge notes
 
 - Point Forge’s “Git Repository” to **this** repo (not the Expo mobile repo).
