@@ -8,6 +8,7 @@ This repo now includes NativePHP Mobile scaffolding so you can package iOS + And
 - `config/nativephp.php` generated
 - `native` CLI wrapper added (`./native`)
 - Bootstrap scripts added:
+  - `./scripts/nativephp-svelte-bootstrap.sh` (Svelte shell bootstrap)
   - `./scripts/nativephp-preflight.sh`
   - `./scripts/nativephp-bootstrap.sh`
 
@@ -15,6 +16,7 @@ This repo now includes NativePHP Mobile scaffolding so you can package iOS + And
 
 ```bash
 cd /Users/chrishogg/Documents/GitHub/calvary-caravan-api
+./scripts/nativephp-svelte-bootstrap.sh
 ./scripts/nativephp-bootstrap.sh
 ./scripts/nativephp-preflight.sh
 ```
@@ -31,6 +33,7 @@ Set these in `.env` before packaging:
 NATIVEPHP_APP_ID=com.calvarybaptist.calvarycaravan
 NATIVEPHP_APP_VERSION=1.0.0
 NATIVEPHP_APP_VERSION_CODE=1
+NATIVEPHP_START_URL=/mobile/index.html
 IOS_TEAM_ID=
 
 ANDROID_KEYSTORE_FILE=

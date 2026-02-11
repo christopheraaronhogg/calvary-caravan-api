@@ -34,18 +34,26 @@ php artisan test
 
 ## NativePHP mobile (iOS + Android)
 
-This repo now includes a NativePHP bootstrap for shipping a Laravel-powered mobile build.
+This repo includes NativePHP scaffolding for shipping a Laravel-powered mobile build.
 
-Quick start:
+Quick start (NativePHP shell):
 
 ```bash
+./scripts/nativephp-svelte-bootstrap.sh
 ./scripts/nativephp-bootstrap.sh
 ./scripts/nativephp-preflight.sh
 ```
 
-Detailed guide:
+Svelte-first UI bootstrap (recommended for Caravan):
+
+```bash
+./scripts/nativephp-svelte-bootstrap.sh
+```
+
+Detailed guides:
 
 - `docs/nativephp-mobile-bootstrap.md`
+- `docs/nativephp-svelte-bootstrap.md`
 
 ## Laravel Forge notes
 
