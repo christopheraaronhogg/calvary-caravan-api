@@ -32,6 +32,11 @@ if ! grep -q '@sveltejs/adapter-static' package.json 2>/dev/null; then
   npm install --save-dev @sveltejs/adapter-static
 fi
 
+if ! grep -q '"runed"' package.json 2>/dev/null; then
+  echo "Installing runed utilities ..."
+  npm install runed
+fi
+
 echo "Writing SvelteKit config for NativePHP static bundle output ..."
 cat > svelte.config.js <<'EOF'
 import adapter from '@sveltejs/adapter-static';

@@ -2,6 +2,8 @@
 
 This is the **Svelte-first** mobile path for Calvary Caravan.
 
+It also standardizes on **Runed** (`runed.dev`) as the Svelte utility layer.
+
 ## Architecture (today)
 
 - Laravel (`/`) remains the API/backend and NativePHP host.
@@ -22,9 +24,10 @@ This command will:
 
 1. Scaffold `frontend/` using SvelteKit (if missing)
 2. Install `@sveltejs/adapter-static`
-3. Configure build output to `public/mobile`
-4. Add a starter API helper + join screen
-5. Build the Svelte app once
+3. Install `runed` (Runed utilities)
+4. Configure build output to `public/mobile`
+5. Add a starter API helper + join screen
+6. Build the Svelte app once
 
 ## Daily dev loop
 
