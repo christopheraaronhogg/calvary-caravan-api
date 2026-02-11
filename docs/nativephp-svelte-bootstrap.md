@@ -8,6 +8,8 @@ It also standardizes on **Runed** (`runed.dev`) as the Svelte utility layer.
 
 - Laravel (`/`) remains the API/backend and NativePHP host.
 - SvelteKit lives in `frontend/`.
+- **Runed** is the default utility layer for runes/state helpers.
+- **shadcn-svelte** is the default component primitive layer.
 - SvelteKit static build outputs to `public/mobile`.
 - NativePHP loads `NATIVEPHP_START_URL=/mobile/index.html`.
 - API stays at `/api/v1/retreat/*` with `X-Device-Token` auth.
@@ -28,6 +30,12 @@ This command will:
 4. Configure build output to `public/mobile`
 5. Add a starter API helper + join screen
 6. Build the Svelte app once
+
+Optional UI kit init (recommended):
+
+```bash
+npx shadcn-svelte@latest init
+```
 
 ## Daily dev loop
 

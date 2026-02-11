@@ -44,7 +44,7 @@ Quick start (NativePHP shell):
 ./scripts/nativephp-preflight.sh
 ```
 
-Svelte-first UI bootstrap (recommended for Caravan, with Runed utilities):
+Svelte-first UI bootstrap (recommended for Caravan, with Runed utilities + shadcn-svelte components):
 
 ```bash
 ./scripts/nativephp-svelte-bootstrap.sh
