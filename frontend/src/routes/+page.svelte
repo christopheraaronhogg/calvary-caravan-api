@@ -192,7 +192,7 @@
     document.body.classList.remove('theme-night');
   }
 
-  $: if (inRetreat && activeTab === 'map') {
+  $: if (inRetreat && activeTab === 'map' && mapElement) {
     void ensureMapReady();
   }
 
