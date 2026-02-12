@@ -64,6 +64,14 @@ Submission readiness checks:
 ./scripts/appstore-readiness.sh
 ```
 
+Web/mobile shell health checks:
+
+```bash
+./scripts/web-health-check.sh
+```
+
+`/mobile` deep links are routed back to `public/mobile/index.html` so static Svelte routes continue to work under Laravel/Forge.
+
 ## Laravel Forge notes
 
 - Point Forge’s “Git Repository” to **this** repo (not the Expo mobile repo).
@@ -71,4 +79,34 @@ Submission readiness checks:
 - Ensure the deploy script runs:
   - `composer install --no-dev --optimize-autoloader`
   - `php artisan migrate --force`
+
+## SpacetimeDB location sidecar (hardening path)
+
+A SpacetimeDB location sidecar prototype is included at:
+
+- `spacetimedb-location/spacetimedb`
+
+Run quick local smoke:
+
+```bash
+./scripts/spacetime-smoke.sh
+```
+
+Or run the manual flow:
+
+```bash
+cd spacetimedb-location/spacetimedb
+npm run build
+spacetime start --in-memory --listen-addr 127.0.0.1:3000 --non-interactive
+spacetime publish calvary-location-tracker-smoke --project-path . --server local --anonymous -y --delete-data=always
+spacetime call --server local --anonymous -y calvary-location-tracker-smoke upsert_location -- 1 1 35.1001 -90.2202 6.5 0 180 220 1739380200000
+spacetime call --server local --anonymous -y calvary-location-tracker-smoke list_latest_locations_for_retreat 1
+```
+
+Laravel can optionally dual-write accepted `/api/v1/retreat/location` updates to SpacetimeDB when enabled:
+
+- `SPACETIME_LOCATION_MIRROR_ENABLED=true`
+- `SPACETIME_SERVER=<local|maincloud|...>`
+- `SPACETIME_DATABASE=<database-name>`
+- `SPACETIME_ANONYMOUS=<true|false>`
 

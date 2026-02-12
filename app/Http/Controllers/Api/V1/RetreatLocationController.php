@@ -5,26 +5,36 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\UpdateLocationRequest;
 use App\Models\ParticipantLocation;
+use App\Services\SpacetimeLocationMirror;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class RetreatLocationController extends Controller
 {
-    public function update(UpdateLocationRequest $request): JsonResponse
+    public function update(UpdateLocationRequest $request, SpacetimeLocationMirror $spacetimeMirror): JsonResponse
     {
         $participant = $request->attributes->get('participant');
+        $retreat = $request->attributes->get('retreat');
+
+        $validated = $request->validated();
 
         ParticipantLocation::create([
             'participant_id' => $participant->id,
-            'latitude' => $request->validated('latitude'),
-            'longitude' => $request->validated('longitude'),
-            'accuracy' => $request->validated('accuracy'),
-            'speed' => $request->validated('speed'),
-            'heading' => $request->validated('heading'),
-            'altitude' => $request->validated('altitude'),
-            'recorded_at' => $request->validated('recorded_at'),
+            'latitude' => $validated['latitude'],
+            'longitude' => $validated['longitude'],
+            'accuracy' => $validated['accuracy'] ?? null,
+            'speed' => $validated['speed'] ?? null,
+            'heading' => $validated['heading'] ?? null,
+            'altitude' => $validated['altitude'] ?? null,
+            'recorded_at' => $validated['recorded_at'],
             'created_at' => now(),
         ]);
+
+        $spacetimeMirror->mirrorLatestLocation(
+            (int) $participant->id,
+            (int) $retreat->id,
+            $validated
+        );
 
         return response()->json([
             'data' => [
