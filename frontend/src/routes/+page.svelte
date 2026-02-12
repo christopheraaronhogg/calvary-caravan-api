@@ -255,7 +255,7 @@
     if (!mapInstance) {
       mapInstance = mapLibrary.map(mapElement, {
         zoomControl: true,
-        attributionControl: true
+        attributionControl: false
       });
 
       mapLibrary
@@ -1136,6 +1136,17 @@
           {/if}
         </div>
 
+        <p class="map-attribution" role="note" aria-label="Map attribution">
+          <a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer">Leaflet</a>
+          <span aria-hidden="true">•</span>
+          <span>
+            Map data ©
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer"
+              >OpenStreetMap contributors</a
+            >
+          </span>
+        </p>
+
         <div class="participant-row">
           {#each participants as row}
             <button type="button" class="pill" on:click={() => openParticipant(row)}>
@@ -1655,6 +1666,27 @@
     position: absolute;
     inset: 0;
     z-index: 1;
+  }
+
+  .map-attribution {
+    margin: 0;
+    padding: 0 0.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.36rem;
+    font-size: 0.75rem;
+    color: #6a7284;
+  }
+
+  .map-attribution a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .app-shell.night .map-attribution {
+    color: #b8c6e4;
   }
 
   :global(.leaflet-container) {
