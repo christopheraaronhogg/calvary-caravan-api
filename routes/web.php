@@ -3,6 +3,10 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    if (is_dir(public_path('mobile'))) {
+        return redirect('/mobile');
+    }
+
     return view('welcome');
 });
 
