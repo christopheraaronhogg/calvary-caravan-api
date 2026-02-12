@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'nominatim' => [
+        'enabled' => env('NOMINATIM_ENABLED', true),
+        'base_url' => env('NOMINATIM_BASE_URL', 'https://nominatim.openstreetmap.org/reverse'),
+        'timeout_seconds' => env('NOMINATIM_TIMEOUT_SECONDS', 2.5),
+        'cache_minutes' => env('NOMINATIM_CACHE_MINUTES', 90),
+        'accept_language' => env('NOMINATIM_ACCEPT_LANGUAGE', 'en'),
+        'user_agent' => env('NOMINATIM_USER_AGENT', 'CalvaryCaravan/1.0 (support@calvarycaravan.on-forge.com)'),
+        'allow_during_tests' => env('NOMINATIM_ALLOW_DURING_TESTS', false),
+    ],
+
 ];

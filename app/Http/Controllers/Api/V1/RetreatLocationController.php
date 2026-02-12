@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\UpdateLocationRequest;
 use App\Models\ParticipantLocation;
+use App\Services\LocationPlaceLabelService;
 use App\Services\SpacetimeLocationMirror;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,7 +51,7 @@ class RetreatLocationController extends Controller
         ]);
     }
 
-    public function all(Request $request): JsonResponse
+    public function all(Request $request, LocationPlaceLabelService $placeLabelService): JsonResponse
     {
         $retreat = $request->attributes->get('retreat');
         $currentParticipant = $request->attributes->get('participant');
@@ -59,9 +60,27 @@ class RetreatLocationController extends Controller
             ->whereNotNull('device_token')
             ->with('latestLocation')
             ->get()
-            ->map(function ($participant) use ($currentParticipant) {
+            ->map(function ($participant) use ($currentParticipant, $placeLabelService) {
                 $location = $participant->latestLocation;
                 $locationSharingEnabled = (bool) ($participant->location_sharing_enabled ?? true);
+
+                $locationPayload = null;
+
+                if ($locationSharingEnabled && $location) {
+                    $lat = (float) $location->latitude;
+                    $lng = (float) $location->longitude;
+                    $accuracy = $location->accuracy ? (float) $location->accuracy : null;
+
+                    $locationPayload = [
+                        'lat' => $lat,
+                        'lng' => $lng,
+                        'accuracy' => $accuracy,
+                        'speed' => $location->speed ? (float) $location->speed : null,
+                        'heading' => $location->heading ? (float) $location->heading : null,
+                        'recorded_at' => $location->recorded_at->toIso8601String(),
+                        'place' => $placeLabelService->resolve($lat, $lng, $accuracy),
+                    ];
+                }
 
                 return [
                     'participant_id' => $participant->id,
@@ -73,14 +92,7 @@ class RetreatLocationController extends Controller
                     'is_leader' => (bool) $participant->is_leader,
                     'is_current_user' => $participant->id === $currentParticipant->id,
                     'location_sharing_enabled' => $locationSharingEnabled,
-                    'location' => ($locationSharingEnabled && $location) ? [
-                        'lat' => (float) $location->latitude,
-                        'lng' => (float) $location->longitude,
-                        'accuracy' => $location->accuracy ? (float) $location->accuracy : null,
-                        'speed' => $location->speed ? (float) $location->speed : null,
-                        'heading' => $location->heading ? (float) $location->heading : null,
-                        'recorded_at' => $location->recorded_at->toIso8601String(),
-                    ] : null,
+                    'location' => $locationPayload,
                     'last_seen_seconds_ago' => $participant->last_seen_at
                         ? (int) abs(now()->diffInSeconds($participant->last_seen_at, false))
                         : null,

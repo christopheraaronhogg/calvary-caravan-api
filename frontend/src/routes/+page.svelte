@@ -7,6 +7,15 @@
   type ComposerMode = 'chat' | 'prayer';
   type ThemeMode = 'day' | 'night';
 
+  type PlaceLabel = {
+    label: string;
+    name: string;
+    relation: 'at' | 'near';
+    distance_m: number | null;
+    confidence: 'high' | 'medium' | 'low';
+    source: 'nominatim';
+  };
+
   type JoinResponse = {
     data: {
       participant_id: number;
@@ -48,6 +57,7 @@
     speed: number | null;
     heading: number | null;
     recorded_at: string;
+    place?: PlaceLabel | null;
   };
 
   type ParticipantLocationRow = {
@@ -226,6 +236,12 @@
     if (seconds < 60) return 'just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     return `${Math.floor(seconds / 3600)}h ago`;
+  }
+
+  function formatDistanceMeters(distance: number | null | undefined): string {
+    if (distance === null || distance === undefined || !Number.isFinite(distance)) return '';
+    if (distance < 1000) return `${Math.round(distance)}m`;
+    return `${(distance / 1000).toFixed(1)}km`;
   }
 
   function hasValidCoords(lat: number | null | undefined, lng: number | null | undefined): boolean {
@@ -847,7 +863,15 @@
           accuracy: 9,
           speed: 17,
           heading: 112,
-          recorded_at: nowIso
+          recorded_at: nowIso,
+          place: {
+            label: 'At Trumann Community Health Club',
+            name: 'Trumann Community Health Club',
+            relation: 'at',
+            distance_m: 12,
+            confidence: 'high',
+            source: 'nominatim'
+          }
         },
         last_seen_seconds_ago: 5
       },
@@ -1420,6 +1444,14 @@
       <header>
         <h4>{selectedParticipant.name}</h4>
         <p>{selectedParticipant.vehicle_color ?? 'Vehicle TBD'} · {selectedParticipant.vehicle_description ?? 'Description TBD'}</p>
+        {#if selectedParticipant.location?.place?.label}
+          <p class="place-label-line">
+            📍 {selectedParticipant.location.place.label}
+            {#if selectedParticipant.location.place.distance_m !== null}
+              <span>({formatDistanceMeters(selectedParticipant.location.place.distance_m)})</span>
+            {/if}
+          </p>
+        {/if}
       </header>
 
       <div class="quick-actions">
@@ -2113,6 +2145,35 @@
   .confirm-modal p {
     margin: 0.3rem 0 0;
     color: #677084;
+  }
+
+  .participant-sheet .place-label-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+    padding: 0.28rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(45, 79, 142, 0.2);
+    background: rgba(36, 88, 198, 0.1);
+    color: #1f3f86;
+    font-size: 0.76rem;
+    line-height: 1.2;
+  }
+
+  .participant-sheet .place-label-line span {
+    color: #5c6f95;
+    font-weight: 600;
+  }
+
+  :global(body.theme-night) .participant-sheet .place-label-line {
+    background: rgba(60, 108, 214, 0.2);
+    border-color: rgba(138, 170, 238, 0.45);
+    color: #dbe8ff;
+  }
+
+  :global(body.theme-night) .participant-sheet .place-label-line span {
+    color: #bdd1ff;
   }
 
   .quick-actions {
