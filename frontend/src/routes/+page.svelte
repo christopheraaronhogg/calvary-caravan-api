@@ -1441,6 +1441,11 @@
     opacity: 0.5;
   }
 
+  :global(body.theme-night) .map-grid,
+  .app-shell.night .map-grid {
+    opacity: 0.34;
+  }
+
   .map-road {
     position: absolute;
     width: 72%;
@@ -1453,6 +1458,18 @@
     border-right-color: rgba(143, 0, 48, 0.28);
     transform: rotate(18deg);
     opacity: 0.55;
+  }
+
+  :global(body.theme-night) .map-road,
+  .app-shell.night .map-road {
+    border-color: rgba(255, 106, 164, 0.84);
+    border-left-color: rgba(255, 106, 164, 0.5);
+    border-right-color: rgba(255, 106, 164, 0.5);
+    opacity: 0.9;
+    box-shadow:
+      0 0 0 1px rgba(255, 198, 221, 0.16),
+      0 0 24px rgba(179, 0, 69, 0.38),
+      inset 0 0 16px rgba(179, 0, 69, 0.2);
   }
 
   .marker {
@@ -1797,12 +1814,12 @@
 
   .quick-actions .alert-leader-btn {
     background: var(--accent-main);
-    color: var(--accent-night-text);
+    color: #ffe8f1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    font-weight: 650;
+    font-weight: 660;
   }
 
   .quick-actions .alert-leader-icon {
@@ -1811,21 +1828,22 @@
     border-radius: 999px;
     display: grid;
     place-items: center;
-    background: rgba(255, 210, 226, 0.24);
-    color: #fff4f8;
+    background: rgba(255, 210, 226, 0.32);
+    color: #fff9fc;
     font-size: 0.78rem;
     line-height: 1;
+    box-shadow: inset 0 0 0 1px rgba(255, 244, 248, 0.24);
   }
 
   :global(body.theme-night) .quick-actions .alert-leader-btn {
     background: var(--accent-main-strong);
-    color: #ffe4ee;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    color: #ffedf4;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
   }
 
   :global(body.theme-night) .quick-actions .alert-leader-icon {
-    background: rgba(255, 228, 238, 0.2);
-    color: #fff7fa;
+    background: rgba(255, 228, 238, 0.3);
+    color: #fffbfc;
   }
 
   .confirm-modal blockquote {
