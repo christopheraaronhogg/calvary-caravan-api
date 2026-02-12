@@ -182,7 +182,7 @@
   ];
 
   $: onlineCount = participants.filter((p) => (p.last_seen_seconds_ago ?? 9999) < 300).length;
-  $: mapRows = participantLocationRows();
+  $: mapRows = participantLocationRows(participants);
   $: canSendAlert = myParticipant?.is_leader === true;
   $: queuedCount = queuedMessages.length;
 
@@ -238,8 +238,8 @@
     return { lat: Number(lat), lng: Number(lng) };
   }
 
-  function participantLocationRows(): ParticipantLocationRow[] {
-    return participants.filter((row) => hasValidCoords(row.location?.lat, row.location?.lng));
+  function participantLocationRows(rows: ParticipantLocationRow[]): ParticipantLocationRow[] {
+    return rows.filter((row) => hasValidCoords(row.location?.lat, row.location?.lng));
   }
 
   async function ensureMapReady(): Promise<void> {
@@ -282,7 +282,7 @@
 
     mapLayer.clearLayers();
 
-    const locationRows = participantLocationRows();
+    const locationRows = mapRows;
     const dest = destinationCoords();
     const points: Array<[number, number]> = [];
 
