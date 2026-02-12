@@ -34,6 +34,7 @@ class SpacetimeLocationMirrorTest extends TestCase
         $join = $this->postJson('/api/v1/retreat/join', [
             'code' => 'MRROR1',
             'name' => 'Tester',
+            'phone_number' => '+15012315761',
         ])->assertOk()->json('data');
 
         $payload = [

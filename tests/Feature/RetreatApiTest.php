@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Retreat;
+use App\Models\RetreatParticipant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,6 +32,7 @@ class RetreatApiTest extends TestCase
         $this->postJson('/api/v1/retreat/join', [
             'code' => 'BAD1',
             'name' => 'Tester',
+            'phone_number' => '5012315761',
         ])->assertStatus(422)
             ->assertJsonStructure(['error']);
     }
@@ -42,6 +44,7 @@ class RetreatApiTest extends TestCase
         $join = $this->postJson('/api/v1/retreat/join', [
             'code' => 'TEST26',
             'name' => 'Tester',
+            'phone_number' => '(501) 231-5761',
             'vehicle_color' => 'Blue',
             'vehicle_description' => 'Minivan',
         ])->assertOk()
@@ -49,9 +52,11 @@ class RetreatApiTest extends TestCase
                 'data' => [
                     'participant_id',
                     'device_token',
+                    'identity' => ['phone_display', 'continuity_mode'],
                     'retreat' => ['id', 'name', 'destination', 'starts_at', 'ends_at'],
                 ],
             ])
+            ->assertJsonPath('data.identity.continuity_mode', 'phone_no_otp')
             ->json('data');
 
         $token = $join['device_token'];
@@ -124,6 +129,62 @@ class RetreatApiTest extends TestCase
         ])->assertStatus(401);
     }
 
+    public function test_leader_can_add_waypoint_and_update_destination(): void
+    {
+        $retreat = $this->createActiveRetreat(['code' => 'TEST26']);
+
+        $join = $this->postJson('/api/v1/retreat/join', [
+            'code' => 'TEST26',
+            'name' => 'Leader Tester',
+            'phone_number' => '+15012315761',
+        ])->assertOk()->json('data');
+
+        $token = $join['device_token'];
+
+        RetreatParticipant::query()
+            ->where('id', $join['participant_id'])
+            ->update(['is_leader' => true]);
+
+        $this->postJson('/api/v1/retreat/waypoints', [
+            'name' => 'Branson Landing Meetup',
+            'description' => 'Group meetup before convoy handoff.',
+            'latitude' => 36.6436856,
+            'longitude' => -93.2183041,
+            'set_as_destination' => true,
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertStatus(201)
+            ->assertJsonPath('data.name', 'Branson Landing Meetup')
+            ->assertJsonPath('data.order', 1)
+            ->assertJsonPath('meta.destination.name', 'Branson Landing Meetup');
+
+        $this->assertDatabaseHas('retreat_waypoints', [
+            'retreat_id' => $retreat->id,
+            'name' => 'Branson Landing Meetup',
+            'waypoint_order' => 1,
+        ]);
+    }
+
+    public function test_non_leader_cannot_add_waypoint(): void
+    {
+        $this->createActiveRetreat(['code' => 'TEST26']);
+
+        $join = $this->postJson('/api/v1/retreat/join', [
+            'code' => 'TEST26',
+            'name' => 'Non Leader',
+            'phone_number' => '+15012315761',
+        ])->assertOk()->json('data');
+
+        $this->postJson('/api/v1/retreat/waypoints', [
+            'name' => 'Branson Landing Meetup',
+            'latitude' => 36.6436856,
+            'longitude' => -93.2183041,
+        ], [
+            'X-Device-Token' => $join['device_token'],
+        ])->assertStatus(403)
+            ->assertJsonPath('error', 'Only leaders can manage waypoints');
+    }
+
     public function test_profile_photo_can_be_set_and_cleared(): void
     {
         $this->createActiveRetreat(['code' => 'TEST26']);
@@ -131,6 +192,7 @@ class RetreatApiTest extends TestCase
         $join = $this->postJson('/api/v1/retreat/join', [
             'code' => 'TEST26',
             'name' => 'Tester',
+            'phone_number' => '+15012315761',
         ])->assertOk()->json('data');
 
         $token = $join['device_token'];
