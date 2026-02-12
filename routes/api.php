@@ -13,7 +13,6 @@ Route::prefix('v1')->group(function () {
         // Authenticated endpoints (require device token)
         Route::middleware('retreat.auth')->group(function () {
             Route::post('/leave', [RetreatController::class, 'leave']);
-            Route::delete('/account', [RetreatController::class, 'deleteAccount']);
             Route::get('/status', [RetreatController::class, 'status']);
             Route::get('/waypoints', [RetreatController::class, 'waypoints']);
             Route::post('/waypoints', [RetreatController::class, 'storeWaypoint']);
@@ -39,4 +38,3 @@ Route::get('/health', function () {
         'timestamp' => now()->toIso8601String(),
     ]);
 });
-

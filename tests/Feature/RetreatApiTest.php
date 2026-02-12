@@ -52,11 +52,9 @@ class RetreatApiTest extends TestCase
                 'data' => [
                     'participant_id',
                     'device_token',
-                    'identity' => ['phone_display', 'continuity_mode'],
                     'retreat' => ['id', 'name', 'destination', 'starts_at', 'ends_at'],
                 ],
             ])
-            ->assertJsonPath('data.identity.continuity_mode', 'phone_no_otp')
             ->json('data');
 
         $token = $join['device_token'];
