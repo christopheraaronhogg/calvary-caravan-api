@@ -34,6 +34,8 @@ Store files in:
 ```bash
 cd /Users/chrishogg/Documents/GitHub/calvary-caravan-api
 ./scripts/capture-appstore-screenshots.sh
+# optional non-interactive mode (captures every 2s):
+./scripts/capture-appstore-screenshots.sh iphone-6.9 en-US --auto
 ```
 
 ## Quality checks before upload

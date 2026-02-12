@@ -19,6 +19,7 @@ cd /Users/chrishogg/Documents/GitHub/calvary-caravan-api
 ./scripts/nativephp-svelte-bootstrap.sh
 ./scripts/nativephp-bootstrap.sh
 ./scripts/nativephp-preflight.sh
+./scripts/web-health-check.sh
 ```
 
 If preflight fails, install missing dependencies first (CocoaPods, Java 17, adb, Android SDK, code-signing credentials).
@@ -30,6 +31,7 @@ If preflight fails, install missing dependencies first (CocoaPods, Java 17, adb,
 Set these in `.env` before packaging:
 
 ```dotenv
+APP_KEY=
 NATIVEPHP_APP_ID=com.calvarybaptist.calvarycaravan
 NATIVEPHP_APP_VERSION=1.0.0
 NATIVEPHP_APP_VERSION_CODE=1
@@ -63,6 +65,14 @@ Run iOS debug build on simulator:
 ```bash
 php artisan native:run ios <SIMULATOR_UDID> --build=debug --start-url=/mobile/index.html --no-tty
 ```
+
+Recommended on this Mac mini (auto locale + stable non-iCloud build path + simulator auto-pick):
+
+```bash
+./scripts/nativephp-run-ios-sim.sh
+```
+
+If your repo lives in iCloud-managed folders (`Documents`, `Desktop`) and you hit `Resource deadlock avoided` or `dataless` file errors, clone/move to a non-iCloud path (for example `~/GitHub/...`) before packaging.
 
 Run Android debug build:
 

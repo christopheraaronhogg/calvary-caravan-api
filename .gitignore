@@ -28,3 +28,13 @@ Thumbs.db
 
 # Credential files (keystores, private keys, private certificates, API keys)
 /credentials/
+
+# Ephemeral local artifacts
+/storage/*.zip
+
+# Spacetime sidecar local/editor noise
+/spacetimedb-location/.cursor/
+/spacetimedb-location/.github/
+/spacetimedb-location/.windsurfrules
+/spacetimedb-location/AGENTS.md
+/spacetimedb-location/CLAUDE.md

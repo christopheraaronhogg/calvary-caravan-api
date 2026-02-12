@@ -24,7 +24,10 @@ Get to “ready to submit” state before paying Apple membership, so once membe
 cd /Users/chrishogg/Documents/GitHub/calvary-caravan-api
 ./scripts/nativephp-fix-appicon.sh
 ./scripts/appstore-readiness.sh
+./scripts/nativephp-preflight.sh
 ```
+
+If checks report `.env` unreadable / `Resource deadlock avoided`, your repo is likely in an iCloud-managed path with dataless files. Move/clone to a non-iCloud path and rerun.
 
 ## Manual account-holder-only actions (cannot be automated here)
 1. Pay Apple Developer Program annual fee / confirm active membership.

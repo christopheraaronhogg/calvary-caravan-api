@@ -53,12 +53,34 @@ check_cmd() {
   pass "$label ($(command -v "$cmd"))"
 }
 
+env_value() {
+  local key="$1"
+  grep -E "^${key}=" .env 2>/dev/null | head -n 1 | cut -d'=' -f2- || true
+}
+
+check_env_file_readable() {
+  if [[ ! -f .env ]]; then
+    fail ".env file is missing"
+    warn "Create one with: cp .env.example .env"
+    return 1
+  fi
+
+  if ! head -c 1 .env >/dev/null 2>&1; then
+    fail ".env exists but is unreadable (possible iCloud dataless/deadlock)"
+    warn "Recommended workaround: copy repo to a non-iCloud path, then restore .env and rerun checks"
+    return 1
+  fi
+
+  pass ".env file is readable"
+  return 0
+}
+
 check_env_key() {
   local key="$1"
   local required_value="${2:-true}"
   local value
 
-  value=$(grep -E "^${key}=" .env 2>/dev/null | head -n 1 | cut -d'=' -f2- || true)
+  value="$(env_value "$key")"
 
   if [[ -z "$value" ]]; then
     if [[ "$required_value" == "required" ]]; then
@@ -108,21 +130,26 @@ else
 fi
 
 header "Env keys (required for packaging)"
-check_env_key NATIVEPHP_APP_ID required
-check_env_key NATIVEPHP_APP_VERSION required
-check_env_key NATIVEPHP_APP_VERSION_CODE required
-check_env_key NATIVEPHP_START_URL required
-check_env_key IOS_TEAM_ID required
-check_env_key ANDROID_KEYSTORE_FILE required
-check_env_key ANDROID_KEYSTORE_PASSWORD required
-check_env_key ANDROID_KEY_ALIAS required
-check_env_key ANDROID_KEY_PASSWORD required
+if check_env_file_readable; then
+  check_env_key APP_KEY required
+  check_env_key NATIVEPHP_APP_ID required
+  check_env_key NATIVEPHP_APP_VERSION required
+  check_env_key NATIVEPHP_APP_VERSION_CODE required
+  check_env_key NATIVEPHP_START_URL required
+  check_env_key IOS_TEAM_ID required
+  check_env_key ANDROID_KEYSTORE_FILE required
+  check_env_key ANDROID_KEYSTORE_PASSWORD required
+  check_env_key ANDROID_KEY_ALIAS required
+  check_env_key ANDROID_KEY_PASSWORD required
 
-header "Store-upload keys (recommended)"
-check_env_key APP_STORE_API_KEY_PATH optional
-check_env_key APP_STORE_API_KEY_ID optional
-check_env_key APP_STORE_API_ISSUER_ID optional
-check_env_key GOOGLE_SERVICE_KEY optional
+  header "Store-upload keys (recommended)"
+  check_env_key APP_STORE_API_KEY_PATH optional
+  check_env_key APP_STORE_API_KEY_ID optional
+  check_env_key APP_STORE_API_ISSUER_ID optional
+  check_env_key GOOGLE_SERVICE_KEY optional
+else
+  warn "Skipping key-level env checks because .env is unreadable"
+fi
 
 header "Apple code-signing identities"
 identity_count=$(security find-identity -v -p codesigning 2>/dev/null | awk '/valid identities found/{print $1; exit}' || echo "0")

@@ -58,6 +58,23 @@ env_value() {
   grep -E "^${key}=" .env 2>/dev/null | head -n 1 | cut -d'=' -f2- || true
 }
 
+check_env_file_readable() {
+  if [[ ! -f .env ]]; then
+    fail ".env file is missing"
+    warn "Create one with: cp .env.example .env"
+    return 1
+  fi
+
+  if ! head -c 1 .env >/dev/null 2>&1; then
+    fail ".env exists but is unreadable (possible iCloud dataless/deadlock)"
+    warn "Recommended workaround: copy repo to a non-iCloud path, then restore .env and rerun checks"
+    return 1
+  fi
+
+  pass ".env file is readable"
+  return 0
+}
+
 check_env_key() {
   local key="$1"
   local mode="${2:-required}"
@@ -150,13 +167,17 @@ else
 fi
 
 header "iOS signing and App Store upload env"
-check_env_key IOS_TEAM_ID required
-check_env_key IOS_DISTRIBUTION_CERTIFICATE_PASSWORD required
-check_env_key APP_STORE_API_KEY_ID required
-check_env_key APP_STORE_API_ISSUER_ID required
-check_env_file_path IOS_DISTRIBUTION_CERTIFICATE_PATH required
-check_env_file_path IOS_DISTRIBUTION_PROVISIONING_PROFILE_PATH required
-check_env_file_path APP_STORE_API_KEY_PATH required
+if check_env_file_readable; then
+  check_env_key IOS_TEAM_ID required
+  check_env_key IOS_DISTRIBUTION_CERTIFICATE_PASSWORD required
+  check_env_key APP_STORE_API_KEY_ID required
+  check_env_key APP_STORE_API_ISSUER_ID required
+  check_env_file_path IOS_DISTRIBUTION_CERTIFICATE_PATH required
+  check_env_file_path IOS_DISTRIBUTION_PROVISIONING_PROFILE_PATH required
+  check_env_file_path APP_STORE_API_KEY_PATH required
+else
+  warn "Skipping key-level signing checks because .env is unreadable"
+fi
 
 header "Apple keychain identities"
 identity_count=$(security find-identity -v -p codesigning 2>/dev/null | awk '/valid identities found/{print $1; exit}' || echo "0")
