@@ -27,6 +27,7 @@
         id: number;
         name: string;
         is_leader: boolean;
+        location_sharing_enabled: boolean;
         avatar_url: string | null;
       };
       retreat: {
@@ -58,6 +59,7 @@
     vehicle_description: string | null;
     is_leader: boolean;
     is_current_user: boolean;
+    location_sharing_enabled: boolean;
     location: RetreatLocation | null;
     last_seen_seconds_ago: number | null;
   };
@@ -164,6 +166,8 @@
   let locationWatchId: number | null = null;
   let locationErrorShown = false;
   let locationPostBusy = false;
+  let locationSharingEnabled = true;
+  let locationSharingBusy = false;
   let lastLocationPostedAt = 0;
 
   let mapElement: HTMLDivElement | null = null;
@@ -200,7 +204,7 @@
     renderLiveMap();
   }
 
-  $: if (inRetreat && deviceToken) {
+  $: if (inRetreat && deviceToken && locationSharingEnabled) {
     startLocationWatch();
   } else {
     stopLocationWatch();
@@ -354,7 +358,7 @@
   }
 
   async function postCurrentLocation(position: GeolocationPosition): Promise<void> {
-    if (!deviceToken || !online || locationPostBusy) return;
+    if (!deviceToken || !online || locationPostBusy || !locationSharingEnabled) return;
 
     const nowMs = Date.now();
     if (nowMs - lastLocationPostedAt < 25000) return;
@@ -412,7 +416,7 @@
   function startLocationWatch(): void {
     if (typeof navigator === 'undefined') return;
     if (!navigator.geolocation) return;
-    if (!inRetreat || !deviceToken) return;
+    if (!inRetreat || !deviceToken || !locationSharingEnabled) return;
     if (locationWatchId !== null) return;
 
     locationWatchId = navigator.geolocation.watchPosition(
@@ -493,6 +497,7 @@
       messages = messagesPayload.data;
 
       const me = participants.find((p) => p.is_current_user);
+      locationSharingEnabled = me?.location_sharing_enabled ?? statusPayload.data.participant.location_sharing_enabled ?? true;
       if (me) {
         profileVehicleColor = me.vehicle_color ?? profileVehicleColor;
         profileVehicleDescription = me.vehicle_description ?? profileVehicleDescription;
@@ -524,6 +529,7 @@
 
       const me = participants.find((p) => p.is_current_user);
       if (me) {
+        locationSharingEnabled = me.location_sharing_enabled ?? locationSharingEnabled;
         profileVehicleColor = me.vehicle_color ?? profileVehicleColor;
         profileVehicleDescription = me.vehicle_description ?? profileVehicleDescription;
       }
@@ -701,6 +707,52 @@
     }
   }
 
+  async function setLocationSharing(enabled: boolean): Promise<void> {
+    if (!deviceToken) return;
+    if (locationSharingBusy) return;
+    if (enabled === locationSharingEnabled) return;
+
+    locationSharingBusy = true;
+
+    try {
+      const payload = await api<{ data: { location_sharing_enabled: boolean } }>('/location-sharing', {
+        method: 'POST',
+        body: JSON.stringify({ enabled })
+      }, deviceToken);
+
+      locationSharingEnabled = payload.data.location_sharing_enabled;
+      if (myParticipant) {
+        myParticipant = {
+          ...myParticipant,
+          location_sharing_enabled: locationSharingEnabled
+        };
+      }
+
+      participants = participants.map((row) => {
+        if (!row.is_current_user) return row;
+        return {
+          ...row,
+          location_sharing_enabled: locationSharingEnabled,
+          location: locationSharingEnabled ? row.location : null
+        };
+      });
+
+      if (!locationSharingEnabled) {
+        stopLocationWatch();
+        showStatus('Location sharing paused. Your marker is hidden from the map.');
+      } else {
+        locationErrorShown = false;
+        showStatus('Location sharing re-enabled.');
+      }
+
+      await refreshData();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not update location sharing.');
+    } finally {
+      locationSharingBusy = false;
+    }
+  }
+
   async function leaveRetreat(): Promise<void> {
     if (!deviceToken) return;
     leaving = true;
@@ -716,6 +768,7 @@
       waypoints = [];
       messages = [];
       queuedMessages = [];
+      locationSharingEnabled = true;
       stopLocationWatch();
 
       if (mapInstance) {
@@ -760,6 +813,7 @@
       id: 101,
       name: 'Chris Hogg',
       is_leader: true,
+      location_sharing_enabled: true,
       avatar_url: null
     };
 
@@ -786,6 +840,7 @@
         vehicle_description: 'Ford F-150',
         is_leader: true,
         is_current_user: true,
+        location_sharing_enabled: true,
         location: {
           lat: 36.612,
           lng: -93.287,
@@ -805,6 +860,7 @@
         vehicle_description: 'Honda CR-V',
         is_leader: false,
         is_current_user: false,
+        location_sharing_enabled: true,
         location: {
           lat: 36.618,
           lng: -93.272,
@@ -824,6 +880,7 @@
         vehicle_description: 'Chevy Traverse',
         is_leader: false,
         is_current_user: false,
+        location_sharing_enabled: true,
         location: {
           lat: 36.604,
           lng: -93.248,
@@ -843,6 +900,7 @@
         vehicle_description: 'Kia Telluride',
         is_leader: false,
         is_current_user: false,
+        location_sharing_enabled: true,
         location: {
           lat: 36.597,
           lng: -93.214,
@@ -1299,6 +1357,30 @@
               <input bind:value={profileVehicleDescription} placeholder="e.g. Honda CR-V" />
             </label>
           </div>
+        </article>
+
+        <article class="location-sharing card">
+          <div>
+            <p class="eyebrow">Privacy</p>
+            <h4>Location sharing is {locationSharingEnabled ? 'On' : 'Off'}</h4>
+            <p>
+              Turn this off anytime to remove your marker from the live map. You can still use chat and waypoints.
+            </p>
+          </div>
+          <button
+            type="button"
+            class={locationSharingEnabled ? 'danger-outline' : 'ghost'}
+            disabled={locationSharingBusy}
+            on:click={() => setLocationSharing(!locationSharingEnabled)}
+          >
+            {#if locationSharingBusy}
+              Saving…
+            {:else if locationSharingEnabled}
+              Unshare my location
+            {:else}
+              Share my location again
+            {/if}
+          </button>
         </article>
 
         <div class="profile-actions">
@@ -1942,6 +2024,38 @@
   .profile-actions {
     display: grid;
     gap: 0.5rem;
+  }
+
+  .location-sharing {
+    display: grid;
+    gap: 0.65rem;
+    padding: 0.75rem;
+    border-radius: 16px;
+    border: 1px solid rgba(43, 66, 114, 0.14);
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .location-sharing h4 {
+    margin: 0.12rem 0 0;
+    font-size: 0.98rem;
+  }
+
+  .location-sharing p {
+    margin: 0.28rem 0 0;
+    color: #5b6880;
+  }
+
+  .location-sharing button {
+    justify-self: start;
+  }
+
+  :global(body.theme-night) .location-sharing {
+    background: rgba(14, 31, 61, 0.72);
+    border-color: rgba(126, 152, 203, 0.26);
+  }
+
+  :global(body.theme-night) .location-sharing p {
+    color: #c4d2f1;
   }
 
   .upload-btn {

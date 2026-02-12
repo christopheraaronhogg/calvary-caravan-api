@@ -21,6 +21,7 @@
   Core features:
   - Join a retreat with a simple code
   - View live participant location and status during travel
+  - Pause/unshare your location anytime from Profile settings
   - Group chat for quick coordination
   - Check-ins for better convoy awareness
   - Optional profile photo and vehicle details for easy recognition

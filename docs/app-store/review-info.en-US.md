@@ -26,6 +26,7 @@ How to test quickly:
 
 Important behavior:
 - Location permissions are required for live convoy visibility.
+- Users can disable sharing any time in **Profile → Unshare my location** (this removes their marker from the live map).
 - If network service is weak, updates resume automatically when service returns.
 
 If your team needs an alternate test code or assistance during review, contact us at the App Review contact above.

@@ -64,7 +64,7 @@ class RetreatApiTest extends TestCase
         ])->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    'participant' => ['id', 'name', 'is_leader', 'avatar_url'],
+                    'participant' => ['id', 'name', 'is_leader', 'location_sharing_enabled', 'avatar_url'],
                     'retreat' => ['id', 'name', 'destination', 'starts_at', 'ends_at', 'participant_count'],
                 ],
             ]);
@@ -88,7 +88,7 @@ class RetreatApiTest extends TestCase
         ])->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    ['participant_id', 'name', 'avatar_url', 'vehicle_color', 'vehicle_description', 'is_leader', 'is_current_user', 'location', 'last_seen_seconds_ago'],
+                    ['participant_id', 'name', 'avatar_url', 'vehicle_color', 'vehicle_description', 'is_leader', 'is_current_user', 'location_sharing_enabled', 'location', 'last_seen_seconds_ago'],
                 ],
                 'meta' => ['total_participants', 'online_count', 'server_time'],
             ]);
@@ -207,6 +207,82 @@ class RetreatApiTest extends TestCase
         $this->deleteJson('/api/v1/retreat/profile-photo', [], [
             'X-Device-Token' => $token,
         ])->assertOk()->assertJsonPath('data.avatar_url', null);
+    }
+
+    public function test_participant_can_unshare_location_without_leaving_retreat(): void
+    {
+        $this->createActiveRetreat(['code' => 'TEST26']);
+
+        $join = $this->postJson('/api/v1/retreat/join', [
+            'code' => 'TEST26',
+            'name' => 'Tester',
+            'phone_number' => '+15012315761',
+        ])->assertOk()->json('data');
+
+        $token = $join['device_token'];
+        $participantId = $join['participant_id'];
+
+        $this->postJson('/api/v1/retreat/location', [
+            'latitude' => 36.611158,
+            'longitude' => -93.306554,
+            'accuracy' => 10,
+            'speed' => 0,
+            'heading' => 0,
+            'altitude' => 300,
+            'recorded_at' => now()->toIso8601String(),
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('participant_locations', [
+            'participant_id' => $participantId,
+        ]);
+
+        $this->postJson('/api/v1/retreat/location-sharing', [
+            'enabled' => false,
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertOk()
+            ->assertJsonPath('data.location_sharing_enabled', false);
+
+        $this->assertDatabaseHas('retreat_participants', [
+            'id' => $participantId,
+            'location_sharing_enabled' => false,
+        ]);
+
+        $this->assertDatabaseMissing('participant_locations', [
+            'participant_id' => $participantId,
+        ]);
+
+        $this->getJson('/api/v1/retreat/locations', [
+            'X-Device-Token' => $token,
+        ])->assertOk()
+            ->assertJsonPath('data.0.location_sharing_enabled', false)
+            ->assertJsonPath('data.0.location', null);
+
+        $this->postJson('/api/v1/retreat/location', [
+            'latitude' => 36.611158,
+            'longitude' => -93.306554,
+            'recorded_at' => now()->toIso8601String(),
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertStatus(409)
+            ->assertJsonPath('error', 'Location sharing is currently turned off in your profile');
+
+        $this->postJson('/api/v1/retreat/location-sharing', [
+            'enabled' => true,
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertOk()
+            ->assertJsonPath('data.location_sharing_enabled', true);
+
+        $this->postJson('/api/v1/retreat/location', [
+            'latitude' => 36.611158,
+            'longitude' => -93.306554,
+            'recorded_at' => now()->toIso8601String(),
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertOk();
     }
 }
 

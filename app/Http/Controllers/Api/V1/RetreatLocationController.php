@@ -16,6 +16,12 @@ class RetreatLocationController extends Controller
         $participant = $request->attributes->get('participant');
         $retreat = $request->attributes->get('retreat');
 
+        if (! ((bool) ($participant->location_sharing_enabled ?? true))) {
+            return response()->json([
+                'error' => 'Location sharing is currently turned off in your profile',
+            ], 409);
+        }
+
         $validated = $request->validated();
 
         ParticipantLocation::create([
@@ -55,6 +61,7 @@ class RetreatLocationController extends Controller
             ->get()
             ->map(function ($participant) use ($currentParticipant) {
                 $location = $participant->latestLocation;
+                $locationSharingEnabled = (bool) ($participant->location_sharing_enabled ?? true);
 
                 return [
                     'participant_id' => $participant->id,
@@ -65,7 +72,8 @@ class RetreatLocationController extends Controller
                     'vehicle_description' => $participant->vehicle_description,
                     'is_leader' => (bool) $participant->is_leader,
                     'is_current_user' => $participant->id === $currentParticipant->id,
-                    'location' => $location ? [
+                    'location_sharing_enabled' => $locationSharingEnabled,
+                    'location' => ($locationSharingEnabled && $location) ? [
                         'lat' => (float) $location->latitude,
                         'lng' => (float) $location->longitude,
                         'accuracy' => $location->accuracy ? (float) $location->accuracy : null,

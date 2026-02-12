@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\JoinRetreatRequest;
 use App\Http\Requests\Api\StoreWaypointRequest;
 use App\Http\Requests\Api\UpdateProfilePhotoRequest;
+use App\Models\ParticipantLocation;
 use App\Models\Retreat;
 use App\Models\RetreatParticipant;
 use App\Models\RetreatWaypoint;
@@ -96,6 +97,7 @@ class RetreatController extends Controller
                     'id' => $participant->id,
                     'name' => $participant->name,
                     'is_leader' => (bool) $participant->is_leader,
+                    'location_sharing_enabled' => (bool) ($participant->location_sharing_enabled ?? true),
                     'avatar_url' => $participant->avatar_url,
                 ],
                 'retreat' => [
@@ -110,6 +112,34 @@ class RetreatController extends Controller
                     'ends_at' => $retreat->ends_at->toIso8601String(),
                     'participant_count' => $activeParticipantCount,
                 ],
+            ],
+        ]);
+    }
+
+    public function updateLocationSharing(Request $request): JsonResponse
+    {
+        /** @var RetreatParticipant $participant */
+        $participant = $request->attributes->get('participant');
+
+        $payload = $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ]);
+
+        $enabled = (bool) $payload['enabled'];
+
+        $participant->forceFill([
+            'location_sharing_enabled' => $enabled,
+        ])->save();
+
+        if (! $enabled) {
+            ParticipantLocation::query()
+                ->where('participant_id', $participant->id)
+                ->delete();
+        }
+
+        return response()->json([
+            'data' => [
+                'location_sharing_enabled' => $enabled,
             ],
         ]);
     }

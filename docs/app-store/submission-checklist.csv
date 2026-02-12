@@ -14,3 +14,5 @@ AS12,Compliance,App privacy questionnaire answered/published,blocked,CodeHogg (A
 AS13,Compliance,Export compliance answered (and docs uploaded if required),blocked,CodeHogg (ASC),App Store Connect > App Information,Role-gated action
 AS14,Submission,Add build for review + submit to App Review,blocked,CodeHogg (ASC),App Store Connect submission flow,Final submit step
 AS15,Account,Apple Developer membership paid/active,blocked,CodeHogg,Apple Developer account,Required before production submission
+AS16,Privacy Controls,Users can unshare/pause location from profile without leaving retreat,done,MiniHogg,frontend/src/routes/+page.svelte;routes/api.php;app/Http/Controllers/Api/V1/RetreatController.php;app/Http/Controllers/Api/V1/RetreatLocationController.php,Shipped with location-sharing toggle + API enforcement
+AS17,Privacy Controls,Account deletion/request path documented and reachable,blocked,MiniHogg+CodeHogg,https://calvarycaravan.on-forge.com/account-deletion;routes/web.php,Live URL currently returns 404 and must be deployed/verified
