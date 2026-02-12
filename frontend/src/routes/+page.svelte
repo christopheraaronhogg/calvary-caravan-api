@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import 'leaflet/dist/leaflet.css';
   import { api } from '$lib/api';
 
   type Tab = 'map' | 'waypoints' | 'chat' | 'alert' | 'profile';
@@ -160,6 +161,17 @@
   let queueStatus = '';
 
   let refreshTimer: ReturnType<typeof setInterval> | null = null;
+  let locationWatchId: number | null = null;
+  let locationErrorShown = false;
+  let locationPostBusy = false;
+  let lastLocationPostedAt = 0;
+
+  let mapElement: HTMLDivElement | null = null;
+  let mapLibrary: any = null;
+  let mapInstance: any = null;
+  let mapLayer: any = null;
+  let mapAutoFramed = false;
+  let previousLocationCount = 0;
 
   const inAppTabs: Array<{ id: Tab; label: string; icon: string }> = [
     { id: 'map', label: 'Map', icon: '🗺️' },
@@ -170,7 +182,7 @@
   ];
 
   $: onlineCount = participants.filter((p) => (p.last_seen_seconds_ago ?? 9999) < 300).length;
-  $: mapRows = participants.filter((p) => p.location !== null);
+  $: mapRows = participantLocationRows();
   $: canSendAlert = myParticipant?.is_leader === true;
   $: queuedCount = queuedMessages.length;
 
@@ -178,6 +190,20 @@
     document.body.classList.add('theme-night');
   } else if (typeof document !== 'undefined') {
     document.body.classList.remove('theme-night');
+  }
+
+  $: if (inRetreat && activeTab === 'map') {
+    void ensureMapReady();
+  }
+
+  $: if (mapInstance && inRetreat && activeTab === 'map') {
+    renderLiveMap();
+  }
+
+  $: if (inRetreat && deviceToken) {
+    startLocationWatch();
+  } else {
+    stopLocationWatch();
   }
 
   function normalizeCode(code: string): string {
@@ -198,29 +224,213 @@
     return `${Math.floor(seconds / 3600)}h ago`;
   }
 
-  function markerCoords(row: ParticipantLocationRow, index: number): { x: number; y: number } {
-    if (!row.location || mapRows.length === 0) {
-      return { x: 18 + (index % 4) * 22, y: 25 + Math.floor(index / 4) * 22 };
+  function hasValidCoords(lat: number | null | undefined, lng: number | null | undefined): boolean {
+    if (lat === null || lat === undefined || lng === null || lng === undefined) return false;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
+    return !(lat === 0 && lng === 0);
+  }
+
+  function destinationCoords(): { lat: number; lng: number } | null {
+    const lat = retreatInfo?.destination?.lat;
+    const lng = retreatInfo?.destination?.lng;
+    if (!hasValidCoords(lat, lng)) return null;
+    return { lat: Number(lat), lng: Number(lng) };
+  }
+
+  function participantLocationRows(): ParticipantLocationRow[] {
+    return participants.filter((row) => hasValidCoords(row.location?.lat, row.location?.lng));
+  }
+
+  async function ensureMapReady(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    if (!inRetreat || activeTab !== 'map') return;
+    if (!mapElement) return;
+
+    if (!mapLibrary) {
+      const imported = await import('leaflet');
+      mapLibrary = imported.default ?? imported;
     }
 
-    const lats = mapRows.map((item) => item.location!.lat);
-    const lngs = mapRows.map((item) => item.location!.lng);
+    if (!mapInstance) {
+      mapInstance = mapLibrary.map(mapElement, {
+        zoomControl: true,
+        attributionControl: true
+      });
 
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
+      mapLibrary
+        .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        })
+        .addTo(mapInstance);
 
-    const latSpan = Math.max(maxLat - minLat, 0.003);
-    const lngSpan = Math.max(maxLng - minLng, 0.003);
+      mapLayer = mapLibrary.layerGroup().addTo(mapInstance);
+      mapAutoFramed = false;
+      previousLocationCount = 0;
+    }
 
-    const nx = (row.location.lng - minLng) / lngSpan;
-    const ny = (row.location.lat - minLat) / latSpan;
+    renderLiveMap();
 
-    return {
-      x: 10 + nx * 80,
-      y: 82 - ny * 66
-    };
+    window.requestAnimationFrame(() => {
+      mapInstance?.invalidateSize();
+    });
+  }
+
+  function renderLiveMap(): void {
+    if (!mapInstance || !mapLayer || !mapLibrary) return;
+
+    mapLayer.clearLayers();
+
+    const locationRows = participantLocationRows();
+    const dest = destinationCoords();
+    const points: Array<[number, number]> = [];
+
+    for (const row of locationRows) {
+      const lat = Number(row.location!.lat);
+      const lng = Number(row.location!.lng);
+
+      const color = row.is_current_user
+        ? '#1f9e59'
+        : row.is_leader
+          ? '#8f0030'
+          : '#2458c6';
+
+      const marker = mapLibrary.circleMarker([lat, lng], {
+        radius: row.is_current_user ? 9 : 7,
+        color,
+        weight: row.is_current_user ? 3 : 2,
+        fillColor: color,
+        fillOpacity: 0.9
+      });
+
+      marker.bindPopup(`<strong>${row.name}</strong><br>${formatAgo(row.last_seen_seconds_ago)}`);
+      marker.addTo(mapLayer);
+      points.push([lat, lng]);
+    }
+
+    if (dest) {
+      const destinationMarker = mapLibrary.circleMarker([dest.lat, dest.lng], {
+        radius: 8,
+        color: '#b36a00',
+        weight: 2,
+        fillColor: '#f59e0b',
+        fillOpacity: 0.85
+      });
+
+      destinationMarker.bindPopup(
+        `<strong>Destination</strong><br>${retreatInfo?.destination?.name ?? 'Retreat destination'}`
+      );
+      destinationMarker.addTo(mapLayer);
+      points.push([dest.lat, dest.lng]);
+    }
+
+    const hadNoLocationsBefore = previousLocationCount === 0;
+    previousLocationCount = locationRows.length;
+
+    if (!points.length) {
+      if (!mapAutoFramed) {
+        mapInstance.setView([35.1495, -90.049], 5);
+        mapAutoFramed = true;
+      }
+      return;
+    }
+
+    if (points.length === 1) {
+      if (!mapAutoFramed || hadNoLocationsBefore) {
+        mapInstance.setView(points[0], 11);
+        mapAutoFramed = true;
+      }
+      return;
+    }
+
+    if (!mapAutoFramed || hadNoLocationsBefore) {
+      mapInstance.fitBounds(points, {
+        padding: [32, 32],
+        maxZoom: 12
+      });
+      mapAutoFramed = true;
+    }
+  }
+
+  async function postCurrentLocation(position: GeolocationPosition): Promise<void> {
+    if (!deviceToken || !online || locationPostBusy) return;
+
+    const nowMs = Date.now();
+    if (nowMs - lastLocationPostedAt < 25000) return;
+
+    locationPostBusy = true;
+
+    try {
+      const coords = position.coords;
+      await api('/location', {
+        method: 'POST',
+        body: JSON.stringify({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracy: Number.isFinite(coords.accuracy) ? coords.accuracy : null,
+          speed: coords.speed !== null && Number.isFinite(coords.speed) && coords.speed >= 0 ? coords.speed : null,
+          heading: coords.heading !== null && Number.isFinite(coords.heading) ? coords.heading : null,
+          altitude: coords.altitude !== null && Number.isFinite(coords.altitude) ? coords.altitude : null,
+          recorded_at: new Date(position.timestamp).toISOString()
+        })
+      }, deviceToken);
+
+      lastLocationPostedAt = nowMs;
+
+      participants = participants.map((row) => {
+        if (!row.is_current_user) return row;
+        return {
+          ...row,
+          location: {
+            lat: coords.latitude,
+            lng: coords.longitude,
+            accuracy: Number.isFinite(coords.accuracy) ? coords.accuracy : null,
+            speed: coords.speed !== null && Number.isFinite(coords.speed) && coords.speed >= 0 ? coords.speed : null,
+            heading: coords.heading !== null && Number.isFinite(coords.heading) ? coords.heading : null,
+            recorded_at: new Date(position.timestamp).toISOString()
+          },
+          last_seen_seconds_ago: 0
+        };
+      });
+    } catch {
+      // location posting failures should not spam blocking toasts
+    } finally {
+      locationPostBusy = false;
+    }
+  }
+
+  function stopLocationWatch(): void {
+    if (typeof navigator === 'undefined') return;
+    if (!navigator.geolocation) return;
+    if (locationWatchId === null) return;
+
+    navigator.geolocation.clearWatch(locationWatchId);
+    locationWatchId = null;
+  }
+
+  function startLocationWatch(): void {
+    if (typeof navigator === 'undefined') return;
+    if (!navigator.geolocation) return;
+    if (!inRetreat || !deviceToken) return;
+    if (locationWatchId !== null) return;
+
+    locationWatchId = navigator.geolocation.watchPosition(
+      (position) => {
+        void postCurrentLocation(position);
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED && !locationErrorShown) {
+          setError('Location permission is disabled. Enable it to share live map markers.');
+          locationErrorShown = true;
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 15000,
+        timeout: 15000
+      }
+    );
   }
 
   function showStatus(message: string): void {
@@ -289,6 +499,8 @@
       }
 
       inRetreat = true;
+      mapAutoFramed = false;
+      previousLocationCount = 0;
       appReady = true;
     } finally {
       loadingData = false;
@@ -504,6 +716,16 @@
       waypoints = [];
       messages = [];
       queuedMessages = [];
+      stopLocationWatch();
+
+      if (mapInstance) {
+        mapInstance.remove();
+        mapInstance = null;
+        mapLayer = null;
+      }
+      mapAutoFramed = false;
+      previousLocationCount = 0;
+
       showStatus('You have left the retreat.');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Could not leave retreat.');
@@ -716,7 +938,7 @@
     queueStatus = 'Demo mode active from ?demo=1 for visual sharing.';
   }
 
-  onMount(async () => {
+  onMount(() => {
     online = navigator.onLine;
 
     const savedTheme = localStorage.getItem(THEME_KEY) as ThemeMode | null;
@@ -724,12 +946,15 @@
       themeMode = savedTheme;
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const useDemo = params.get('demo') === '1';
+    void (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const useDemo = params.get('demo') === '1';
 
-    if (useDemo) {
-      enableDemoMode();
-    } else {
+      if (useDemo) {
+        enableDemoMode();
+        return;
+      }
+
       const existingToken = localStorage.getItem(TOKEN_KEY);
       if (existingToken) {
         deviceToken = existingToken;
@@ -743,7 +968,7 @@
       } else {
         appReady = true;
       }
-    }
+    })();
 
     const onlineHandler = async () => {
       online = true;
@@ -769,6 +994,14 @@
       window.removeEventListener('online', onlineHandler);
       window.removeEventListener('offline', offlineHandler);
       if (refreshTimer) clearInterval(refreshTimer);
+
+      stopLocationWatch();
+
+      if (mapInstance) {
+        mapInstance.remove();
+        mapInstance = null;
+        mapLayer = null;
+      }
     };
   });
 </script>
@@ -893,27 +1126,13 @@
         </div>
 
         <div class="map-canvas">
-          <div class="map-grid"></div>
-          <div class="map-road"></div>
+          <div class="map-live" bind:this={mapElement} aria-label="Live map"></div>
 
           {#if mapRows.length === 0}
             <div class="map-empty">
               <strong>No live markers yet</strong>
-              <p>As participants share location, they will appear here.</p>
+              <p>Enable location permission so your marker can appear on the live map.</p>
             </div>
-          {:else}
-            {#each participants as row, index}
-              {@const coords = markerCoords(row, index)}
-              <button
-                type="button"
-                class={`marker ${row.is_current_user ? 'me' : ''}`}
-                style={`left:${coords.x}%; top:${coords.y}%;`}
-                on:click={() => openParticipant(row)}
-              >
-                <span>{row.is_leader ? '⭐' : '🚗'}</span>
-                <small>{row.name.split(' ')[0]}</small>
-              </button>
-            {/each}
           {/if}
         </div>
 
@@ -1424,83 +1643,30 @@
     height: 310px;
     overflow: hidden;
     border: 1px solid rgba(35, 56, 98, 0.15);
-    background: linear-gradient(160deg, #b8e5f6, #dceff7 55%, #f8e8d8 100%);
+    background: #dce5f0;
   }
 
   .app-shell.night .map-canvas {
     border-color: rgba(136, 163, 236, 0.2);
-    background: linear-gradient(170deg, #07132b, #0d2146 55%, #182f5a 100%);
+    background: #0d2146;
   }
 
-  .map-grid {
+  .map-live {
     position: absolute;
     inset: 0;
-    background-image: linear-gradient(rgba(255, 255, 255, 0.25) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.25) 1px, transparent 1px);
-    background-size: 28px 28px;
-    opacity: 0.5;
+    z-index: 1;
   }
 
-  :global(body.theme-night) .map-grid,
-  .app-shell.night .map-grid {
-    opacity: 0.34;
+  :global(.leaflet-container) {
+    width: 100%;
+    height: 100%;
+    font: inherit;
+    background: #dce5f0;
   }
 
-  .map-road {
-    position: absolute;
-    width: 72%;
-    height: 280px;
-    left: 14%;
-    top: 20px;
-    border: 4px solid rgba(143, 0, 48, 0.58);
-    border-radius: 200px;
-    border-left-color: rgba(143, 0, 48, 0.28);
-    border-right-color: rgba(143, 0, 48, 0.28);
-    transform: rotate(18deg);
-    opacity: 0.55;
-  }
-
-  :global(body.theme-night) .map-road,
-  .app-shell.night .map-road {
-    border-color: rgba(255, 106, 164, 0.84);
-    border-left-color: rgba(255, 106, 164, 0.5);
-    border-right-color: rgba(255, 106, 164, 0.5);
-    opacity: 0.9;
-    box-shadow:
-      0 0 0 1px rgba(255, 198, 221, 0.16),
-      0 0 24px rgba(179, 0, 69, 0.38),
-      inset 0 0 16px rgba(179, 0, 69, 0.2);
-  }
-
-  .marker {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    min-width: 52px;
-    background: rgba(255, 255, 255, 0.95);
-    color: #14223e;
-    border: 2px solid var(--accent-main);
-    border-radius: 14px;
-    padding: 0.3rem 0.38rem;
-    display: grid;
-    justify-items: center;
-    gap: 0.07rem;
-    font-size: 0.7rem;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
-  }
-
-  .app-shell.night .marker {
-    background: rgba(11, 24, 54, 0.95);
-    color: #e8efff;
-    border-color: var(--accent-main-strong);
-  }
-
-  .marker.me {
-    border-color: #1f9e59;
-  }
-
-  .marker small {
-    font-size: 0.62rem;
-    font-weight: 620;
+  :global(.leaflet-control-attribution),
+  :global(.leaflet-control-zoom a) {
+    border-radius: 10px;
   }
 
   .map-empty,
@@ -1515,6 +1681,9 @@
   .map-empty {
     position: absolute;
     inset: auto 14px 14px;
+    z-index: 3;
+    pointer-events: none;
+    backdrop-filter: blur(1px);
   }
 
   .map-empty p,
