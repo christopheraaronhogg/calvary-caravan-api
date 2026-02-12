@@ -15,9 +15,18 @@ use Illuminate\Support\Str;
 
 class RetreatController extends Controller
 {
+    /**
+     * Temporary compatibility aliases so both mnemonic and numeric launch codes
+     * can resolve to the same active retreat during rollout.
+     */
+    private const RETREAT_CODE_ALIASES = [
+        '262026' => 'CBCR26',
+    ];
+
     public function join(JoinRetreatRequest $request): JsonResponse
     {
-        $code = strtoupper($request->validated('code'));
+        $inputCode = strtoupper($request->validated('code'));
+        $code = self::RETREAT_CODE_ALIASES[$inputCode] ?? $inputCode;
 
         $retreat = Retreat::where('code', $code)
             ->joinable()
