@@ -8,6 +8,7 @@
   type ThemeMode = 'day' | 'night';
   type JoinMode = 'join' | 'signin';
   type ParticipantStripFilter = 'all' | 'leaders';
+  type VisualMode = 'default' | 'neo';
 
   type PlaceLabel = {
     label: string;
@@ -133,6 +134,7 @@
 
   const TOKEN_KEY = 'caravan_device_token';
   const THEME_KEY = 'caravan_theme_mode';
+  const VISUAL_MODE_KEY = 'caravan_visual_mode';
 
   let appReady = false;
   let inRetreat = false;
@@ -146,6 +148,7 @@
   let activeTab: Tab = 'map';
   let composerMode: ComposerMode = 'chat';
   let themeMode: ThemeMode = 'day';
+  let visualMode: VisualMode = 'default';
   let online = true;
 
   let joinMode: JoinMode = 'join';
@@ -218,6 +221,12 @@
     document.body.classList.remove('theme-night');
   }
 
+  $: if (visualMode === 'neo' && typeof document !== 'undefined') {
+    document.body.classList.add('theme-neo');
+  } else if (typeof document !== 'undefined') {
+    document.body.classList.remove('theme-neo');
+  }
+
   $: if (inRetreat && activeTab === 'map' && mapElement) {
     void ensureMapReady();
   }
@@ -239,6 +248,11 @@
 
   function normalizeCode(code: string): string {
     return code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  }
+
+  function toggleVisualMode(): void {
+    visualMode = visualMode === 'default' ? 'neo' : 'default';
+    localStorage.setItem(VISUAL_MODE_KEY, visualMode);
   }
 
   function formatTime(iso: string | null | undefined): string {
@@ -1197,11 +1211,25 @@
       themeMode = savedTheme;
     }
 
+    const savedVisualMode = localStorage.getItem(VISUAL_MODE_KEY) as VisualMode | null;
+    if (savedVisualMode === 'default' || savedVisualMode === 'neo') {
+      visualMode = savedVisualMode;
+    }
+
     void (async () => {
       const params = new URLSearchParams(window.location.search);
       const useDemo = params.get('demo') === '1';
       const forceSignIn = params.get('signin') === '1' || params.get('auth') === 'signin';
       const forceAuthScreen = forceSignIn || params.get('reauth') === '1' || params.get('reset') === '1';
+      const forceNeo = params.get('neo');
+
+      if (forceNeo === '1' || forceNeo?.toLowerCase() === 'true') {
+        visualMode = 'neo';
+        localStorage.setItem(VISUAL_MODE_KEY, visualMode);
+      } else if (forceNeo === '0' || forceNeo?.toLowerCase() === 'false') {
+        visualMode = 'default';
+        localStorage.setItem(VISUAL_MODE_KEY, visualMode);
+      }
 
       if (useDemo) {
         enableDemoMode();
@@ -1359,6 +1387,9 @@
         }}>
           {themeMode === 'day' ? '🌙 Night mode' : '☀️ Day mode'}
         </button>
+        <button type="button" class="theme-toggle neo-toggle" on:click={toggleVisualMode}>
+          {visualMode === 'neo' ? '🧱 Neo mode on' : '🧱 Neo mode off'}
+        </button>
       </div>
 
       <aside class="join-notes">
@@ -1389,6 +1420,9 @@
       </div>
 
       <div class="topbar-actions">
+        <button type="button" class="ghost" on:click={toggleVisualMode} aria-label="Toggle neobrutal test mode">
+          {visualMode === 'neo' ? '🧱' : '🎨'}
+        </button>
         <button type="button" class="ghost" on:click={() => {
           themeMode = themeMode === 'day' ? 'night' : 'day';
           localStorage.setItem(THEME_KEY, themeMode);
@@ -1985,11 +2019,21 @@
     color: #bf2222;
   }
 
+  .join-footer {
+    margin-top: 0.5rem;
+    display: grid;
+    gap: 0.45rem;
+  }
+
   .theme-toggle {
     width: 100%;
-    margin-top: 0.5rem;
+    margin-top: 0;
     background: rgba(44, 61, 103, 0.08);
     color: inherit;
+  }
+
+  .neo-toggle {
+    background: rgba(143, 0, 48, 0.1);
   }
 
   .join-notes {
@@ -2772,6 +2816,224 @@
   .toast.success {
     border-color: rgba(27, 138, 77, 0.35);
     background: #f0fff5;
+  }
+
+  :global(body.theme-neo) {
+    --neo-blue: #a2d2ff;
+    --neo-green: #caffbf;
+    --neo-yellow: #fdffb6;
+    --neo-orange: #ffd6a5;
+    --neo-pink: #ffadad;
+    --neo-purple: #bdb2ff;
+    --neo-red: #e63946;
+    --neo-black: #000;
+    --neo-white: #fff;
+
+    background: var(--neo-yellow);
+    color: var(--neo-black);
+    font-family: 'Inter', 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  :global(body.theme-neo) .card {
+    border: 4px solid var(--neo-black);
+    border-radius: 0;
+    background: var(--neo-white);
+    box-shadow: 8px 8px 0 var(--neo-black);
+  }
+
+  :global(body.theme-neo) .join-card,
+  :global(body.theme-neo) .map-panel,
+  :global(body.theme-neo) .panel {
+    background: var(--neo-white);
+  }
+
+  :global(body.theme-neo) .join-header h1,
+  :global(body.theme-neo) .topbar h2,
+  :global(body.theme-neo) .panel-head h3,
+  :global(body.theme-neo) .participant-sheet header h4,
+  :global(body.theme-neo) .confirm-modal h4 {
+    font-family: 'Archivo Black', 'Space Grotesk', 'Arial Black', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    line-height: 0.92;
+  }
+
+  :global(body.theme-neo) .eyebrow,
+  :global(body.theme-neo) .subtle,
+  :global(body.theme-neo) label,
+  :global(body.theme-neo) .join-header p,
+  :global(body.theme-neo) .panel-head p,
+  :global(body.theme-neo) .timeline-card p,
+  :global(body.theme-neo) .participant-sheet header p,
+  :global(body.theme-neo) .confirm-modal p,
+  :global(body.theme-neo) .chat-item p {
+    color: #1d1d1d;
+    font-weight: 700;
+  }
+
+  :global(body.theme-neo) button,
+  :global(body.theme-neo) .upload-btn {
+    border: 4px solid var(--neo-black);
+    border-radius: 0;
+    background: var(--neo-green);
+    color: var(--neo-black);
+    font-family: 'Archivo Black', 'Space Grotesk', 'Arial Black', sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    box-shadow: 6px 6px 0 var(--neo-black);
+    transition: all 0.1s ease;
+  }
+
+  :global(body.theme-neo) button:hover,
+  :global(body.theme-neo) .upload-btn:hover {
+    transform: translate(3px, 3px);
+    box-shadow: 3px 3px 0 var(--neo-black);
+  }
+
+  :global(body.theme-neo) button:active,
+  :global(body.theme-neo) .upload-btn:active {
+    transform: translate(6px, 6px);
+    box-shadow: none;
+  }
+
+  :global(body.theme-neo) button:disabled,
+  :global(body.theme-neo) .upload-btn:has(input:disabled) {
+    opacity: 0.6;
+    transform: none;
+    box-shadow: 6px 6px 0 var(--neo-black);
+  }
+
+  :global(body.theme-neo) .ghost,
+  :global(body.theme-neo) .small,
+  :global(body.theme-neo) .chip-filter,
+  :global(body.theme-neo) .chip-scroll-btn,
+  :global(body.theme-neo) .quick-actions button {
+    background: var(--neo-white);
+    color: var(--neo-black);
+  }
+
+  :global(body.theme-neo) .danger,
+  :global(body.theme-neo) .quick-actions .alert-leader-btn {
+    background: var(--neo-red);
+    color: var(--neo-white);
+  }
+
+  :global(body.theme-neo) .danger-outline {
+    border: 4px solid var(--neo-black);
+    background: var(--neo-orange);
+    color: var(--neo-black);
+  }
+
+  :global(body.theme-neo) input,
+  :global(body.theme-neo) textarea,
+  :global(body.theme-neo) .join-notes,
+  :global(body.theme-neo) .status-banner,
+  :global(body.theme-neo) .timeline-card,
+  :global(body.theme-neo) .chat-item,
+  :global(body.theme-neo) .location-sharing,
+  :global(body.theme-neo) .toast,
+  :global(body.theme-neo) .map-empty,
+  :global(body.theme-neo) .empty-state,
+  :global(body.theme-neo) .participant-avatar,
+  :global(body.theme-neo) .participant-chip.active,
+  :global(body.theme-neo) .participant-sheet .place-label-line,
+  :global(body.theme-neo) .alert-preview,
+  :global(body.theme-neo) .avatar-wrap,
+  :global(body.theme-neo) .tabbar button.active,
+  :global(body.theme-neo) .mode-toggle button.active,
+  :global(body.theme-neo) .severity-grid button.active,
+  :global(body.theme-neo) .join-mode-toggle button.active,
+  :global(body.theme-neo) .chip-filter.active,
+  :global(body.theme-neo) .timeline-dot,
+  :global(body.theme-neo) .timeline-dot.done,
+  :global(body.theme-neo) .toast.error,
+  :global(body.theme-neo) .toast.success {
+    border: 3px solid var(--neo-black);
+    border-radius: 0;
+    box-shadow: 4px 4px 0 var(--neo-black);
+  }
+
+  :global(body.theme-neo) input,
+  :global(body.theme-neo) textarea {
+    background: var(--neo-white);
+    color: var(--neo-black);
+    font-weight: 700;
+  }
+
+  :global(body.theme-neo) input:focus,
+  :global(body.theme-neo) textarea:focus {
+    box-shadow: 6px 6px 0 var(--neo-blue);
+  }
+
+  :global(body.theme-neo) .join-notes,
+  :global(body.theme-neo) .status-banner,
+  :global(body.theme-neo) .location-sharing,
+  :global(body.theme-neo) .toast,
+  :global(body.theme-neo) .participant-sheet,
+  :global(body.theme-neo) .confirm-modal {
+    background: var(--neo-white);
+    color: var(--neo-black);
+  }
+
+  :global(body.theme-neo) .join-notes {
+    background: var(--neo-purple);
+  }
+
+  :global(body.theme-neo) .topbar {
+    background: var(--neo-blue);
+  }
+
+  :global(body.theme-neo) .tabbar {
+    background: var(--neo-peach, #ffc6ff);
+  }
+
+  :global(body.theme-neo) .map-panel,
+  :global(body.theme-neo) .panel {
+    background: var(--neo-orange);
+  }
+
+  :global(body.theme-neo) .map-canvas {
+    border: 4px solid var(--neo-black);
+    border-radius: 0;
+    background: var(--neo-blue);
+  }
+
+  :global(body.theme-neo) .participant-row {
+    gap: 0.34rem;
+  }
+
+  :global(body.theme-neo) .participant-avatar {
+    background: var(--neo-white);
+    border: 3px solid var(--neo-black);
+  }
+
+  :global(body.theme-neo) .participant-avatar.leader {
+    box-shadow: 0 0 0 3px var(--neo-red);
+  }
+
+  :global(body.theme-neo) .participant-status-dot {
+    border: 2px solid var(--neo-black);
+    box-shadow: none;
+  }
+
+  :global(body.theme-neo) .sheet-backdrop {
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  :global(body.theme-neo) .confirm-modal blockquote {
+    border-left: 4px solid var(--neo-black);
+    background: var(--neo-yellow);
+    padding: 0.5rem 0.6rem;
+    box-shadow: 4px 4px 0 var(--neo-black);
+  }
+
+  :global(body.theme-neo) .toast.error {
+    background: #ffd9d9;
+  }
+
+  :global(body.theme-neo) .toast.success {
+    background: #d9ffe1;
   }
 
   @media (max-width: 380px) {
