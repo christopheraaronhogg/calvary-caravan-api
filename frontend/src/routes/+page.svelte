@@ -7,6 +7,7 @@
   type ComposerMode = 'chat' | 'prayer';
   type ThemeMode = 'day' | 'night';
   type JoinMode = 'join' | 'signin';
+  type ParticipantStripFilter = 'all' | 'leaders';
 
   type PlaceLabel = {
     label: string;
@@ -170,6 +171,8 @@
 
   let selectedParticipant: ParticipantLocationRow | null = null;
   let focusedParticipantId: number | null = null;
+  let participantStripFilter: ParticipantStripFilter = 'all';
+  let participantRowElement: HTMLDivElement | null = null;
 
   let profileVehicleColor = '';
   let profileVehicleDescription = '';
@@ -203,6 +206,9 @@
 
   $: onlineCount = participants.filter((p) => (p.last_seen_seconds_ago ?? 9999) < 300).length;
   $: mapRows = participantLocationRows(participants);
+  $: participantStripRows = participantStripFilter === 'leaders'
+    ? participants.filter((p) => p.is_leader)
+    : participants;
   $: canSendAlert = myParticipant?.is_leader === true;
   $: queuedCount = queuedMessages.length;
 
@@ -697,6 +703,15 @@
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to send emergency alert.');
     }
+  }
+
+  function scrollParticipantRow(direction: -1 | 1): void {
+    if (!participantRowElement) return;
+
+    participantRowElement.scrollBy({
+      left: direction * 188,
+      behavior: 'smooth'
+    });
   }
 
   function focusParticipantOnMap(row: ParticipantLocationRow): void {
@@ -1426,31 +1441,61 @@
           </span>
         </p>
 
-        <div class="participant-row">
-          {#each participants as row}
+        <div class="participant-strip-tools">
+          <div class="participant-strip-filter" role="group" aria-label="Participant filter">
             <button
               type="button"
-              class="participant-chip"
-              class:active={focusedParticipantId === row.participant_id}
-              on:click={() => focusParticipantOnMap(row)}
-              aria-label={`Focus ${row.name} on map`}
+              class="chip-filter"
+              class:active={participantStripFilter === 'all'}
+              on:click={() => (participantStripFilter = 'all')}
             >
-              <span
-                class="participant-avatar"
-                class:leader={row.is_leader}
-                class:online={(row.last_seen_seconds_ago ?? 9999) < 300}
-                class:offline={(row.last_seen_seconds_ago ?? 9999) >= 300}
-              >
-                {#if row.avatar_url}
-                  <img src={row.avatar_url} alt={row.name} />
-                {:else}
-                  <span class="participant-avatar-glyph" aria-hidden="true">{row.is_leader ? '⭐' : '👤'}</span>
-                {/if}
-              </span>
-              <span class="participant-name">{row.name}</span>
+              All ({participants.length})
             </button>
-          {/each}
+            <button
+              type="button"
+              class="chip-filter"
+              class:active={participantStripFilter === 'leaders'}
+              on:click={() => (participantStripFilter = 'leaders')}
+            >
+              Leaders ({participants.filter((p) => p.is_leader).length})
+            </button>
+          </div>
+
+          <div class="participant-strip-scroll-buttons" aria-label="Scroll participants">
+            <button type="button" class="chip-scroll-btn" on:click={() => scrollParticipantRow(-1)} aria-label="Scroll left">◀</button>
+            <button type="button" class="chip-scroll-btn" on:click={() => scrollParticipantRow(1)} aria-label="Scroll right">▶</button>
+          </div>
         </div>
+
+        {#if participantStripRows.length === 0}
+          <div class="participant-strip-empty subtle">No participants match this filter yet.</div>
+        {:else}
+          <div class="participant-row" bind:this={participantRowElement}>
+            {#each participantStripRows as row}
+              <button
+                type="button"
+                class="participant-chip"
+                class:active={focusedParticipantId === row.participant_id}
+                on:click={() => focusParticipantOnMap(row)}
+                aria-label={`Focus ${row.name} on map`}
+              >
+                <span
+                  class="participant-avatar"
+                  class:leader={row.is_leader}
+                  class:online={(row.last_seen_seconds_ago ?? 9999) < 300}
+                  class:offline={(row.last_seen_seconds_ago ?? 9999) >= 300}
+                >
+                  {#if row.avatar_url}
+                    <img src={row.avatar_url} alt={row.name} />
+                  {:else}
+                    <span class="participant-avatar-glyph" aria-hidden="true">{row.is_leader ? '⭐' : '👤'}</span>
+                  {/if}
+                </span>
+                <span class="participant-name">{row.name}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
       </section>
     {:else if activeTab === 'waypoints'}
       <section class="panel card">
@@ -2142,6 +2187,59 @@
   .empty-state p {
     margin: 0.22rem 0 0;
     font-size: 0.84rem;
+  }
+
+  .participant-strip-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  .participant-strip-filter {
+    display: inline-grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.32rem;
+  }
+
+  .chip-filter {
+    background: rgba(39, 62, 113, 0.08);
+    color: inherit;
+    border-radius: 10px;
+    padding: 0.28rem 0.55rem;
+    font-size: 0.69rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .chip-filter.active {
+    background: var(--accent-soft-strong);
+    color: var(--accent-main);
+  }
+
+  :global(body.theme-night) .chip-filter.active {
+    color: var(--accent-night-text);
+  }
+
+  .participant-strip-scroll-buttons {
+    display: inline-grid;
+    grid-auto-flow: column;
+    gap: 0.24rem;
+  }
+
+  .chip-scroll-btn {
+    background: rgba(39, 62, 113, 0.1);
+    color: inherit;
+    border-radius: 10px;
+    padding: 0.28rem 0.45rem;
+    min-width: 1.8rem;
+    font-size: 0.68rem;
+    line-height: 1;
+  }
+
+  .participant-strip-empty {
+    font-size: 0.76rem;
+    padding: 0.35rem 0.1rem;
   }
 
   .participant-row {
