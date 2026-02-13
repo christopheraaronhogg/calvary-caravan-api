@@ -275,6 +275,19 @@
       mapLibrary = imported.default ?? imported;
     }
 
+    // Switching tabs unmounts/remounts the map div, so Leaflet can hold a stale container.
+    // If that happens, rebuild the map instance against the current element.
+    if (mapInstance && typeof mapInstance.getContainer === 'function') {
+      const existingContainer = mapInstance.getContainer();
+      if (!existingContainer || existingContainer !== mapElement) {
+        mapInstance.remove();
+        mapInstance = null;
+        mapLayer = null;
+        mapAutoFramed = false;
+        previousLocationCount = 0;
+      }
+    }
+
     if (!mapInstance) {
       mapInstance = mapLibrary.map(mapElement, {
         zoomControl: true,
