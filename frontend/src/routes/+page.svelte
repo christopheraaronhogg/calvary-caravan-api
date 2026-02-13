@@ -1152,10 +1152,20 @@
     void (async () => {
       const params = new URLSearchParams(window.location.search);
       const useDemo = params.get('demo') === '1';
+      const forceSignIn = params.get('signin') === '1' || params.get('auth') === 'signin';
+      const forceAuthScreen = forceSignIn || params.get('reauth') === '1' || params.get('reset') === '1';
 
       if (useDemo) {
         enableDemoMode();
         return;
+      }
+
+      if (forceSignIn) {
+        joinMode = 'signin';
+      }
+
+      if (forceAuthScreen) {
+        localStorage.removeItem(TOKEN_KEY);
       }
 
       const existingToken = localStorage.getItem(TOKEN_KEY);
