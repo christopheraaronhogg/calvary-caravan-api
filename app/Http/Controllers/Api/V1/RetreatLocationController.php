@@ -9,6 +9,7 @@ use App\Services\LocationPlaceLabelService;
 use App\Services\SpacetimeLocationMirror;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class RetreatLocationController extends Controller
 {
@@ -56,11 +57,17 @@ class RetreatLocationController extends Controller
         $retreat = $request->attributes->get('retreat');
         $currentParticipant = $request->attributes->get('participant');
 
-        $participants = $retreat->participants()
+        $participantModels = $retreat->participants()
             ->whereNotNull('device_token')
             ->with('latestLocation')
-            ->get()
-            ->map(function ($participant) use ($currentParticipant, $placeLabelService) {
+            ->get();
+
+        $participantModels = $this->collapseLegacyChrisHoggDuplicates(
+            $participantModels,
+            (int) $currentParticipant->id
+        );
+
+        $participants = $participantModels->map(function ($participant) use ($currentParticipant, $placeLabelService) {
                 $location = $participant->latestLocation;
                 $locationSharingEnabled = (bool) ($participant->location_sharing_enabled ?? true);
 
@@ -112,5 +119,48 @@ class RetreatLocationController extends Controller
                 'server_time' => now()->toIso8601String(),
             ],
         ]);
+    }
+
+    private function collapseLegacyChrisHoggDuplicates(Collection $participants, int $currentParticipantId): Collection
+    {
+        $result = collect();
+
+        foreach ($participants->groupBy(fn ($participant) => $this->normalizeName($participant->name)) as $normalizedName => $group) {
+            if ($normalizedName !== 'chris hogg' || $group->count() <= 1) {
+                $result = $result->concat($group->values());
+                continue;
+            }
+
+            $current = $group->first(fn ($participant) => (int) $participant->id === $currentParticipantId);
+            $phoneLinked = $group->first(fn ($participant) => trim((string) ($participant->phone_e164 ?? '')) !== '');
+            $mostRecent = $group->reduce(function ($carry, $participant) {
+                if (! $carry) {
+                    return $participant;
+                }
+
+                $carryTs = $carry->last_seen_at ? $carry->last_seen_at->getTimestamp() : 0;
+                $participantTs = $participant->last_seen_at ? $participant->last_seen_at->getTimestamp() : 0;
+
+                if ($participantTs > $carryTs) {
+                    return $participant;
+                }
+
+                if ($participantTs === $carryTs && (int) $participant->id > (int) $carry->id) {
+                    return $participant;
+                }
+
+                return $carry;
+            });
+
+            $canonical = $current ?? $phoneLinked ?? $mostRecent ?? $group->first();
+            $result->push($canonical);
+        }
+
+        return $result->values();
+    }
+
+    private function normalizeName(?string $name): string
+    {
+        return mb_strtolower(trim((string) $name));
     }
 }
