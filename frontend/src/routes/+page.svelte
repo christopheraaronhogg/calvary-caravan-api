@@ -1744,10 +1744,18 @@
     --accent-soft-strong: rgba(198, 62, 112, 0.34);
     --accent-night-text: #ffe9f2;
 
-    background:
-      radial-gradient(120% 90% at 14% -18%, rgba(66, 105, 188, 0.36) 0%, rgba(66, 105, 188, 0) 54%),
-      linear-gradient(180deg, #070f23 0%, #0b1838 100%);
+    background-color: #0a1531;
+    background-image: linear-gradient(180deg, #0d1a3c 0%, #0a1531 100%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     color: #edf3ff;
+  }
+
+  @media (min-width: 900px) {
+    :global(body.theme-night) {
+      background-image: none;
+      background-color: #0b1734;
+    }
   }
 
   :global(*) {
