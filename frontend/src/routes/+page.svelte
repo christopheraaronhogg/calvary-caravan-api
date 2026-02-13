@@ -169,6 +169,7 @@
   let showAlertConfirm = false;
 
   let selectedParticipant: ParticipantLocationRow | null = null;
+  let focusedParticipantId: number | null = null;
 
   let profileVehicleColor = '';
   let profileVehicleDescription = '';
@@ -699,6 +700,8 @@
   }
 
   function focusParticipantOnMap(row: ParticipantLocationRow): void {
+    focusedParticipantId = row.participant_id;
+
     if (activeTab !== 'map') {
       activeTab = 'map';
     }
@@ -711,23 +714,34 @@
     const lat = Number(row.location!.lat);
     const lng = Number(row.location!.lng);
     const placeLabel = participantNearLabel(row);
+    const seenAgo = formatAgo(row.last_seen_seconds_ago);
 
     const applyFocus = () => {
       if (!mapInstance) return;
 
-      const nextZoom = typeof mapInstance.getZoom === 'function'
-        ? Math.max(13, Number(mapInstance.getZoom() ?? 13))
-        : 13;
+      const currentZoom = typeof mapInstance.getZoom === 'function'
+        ? Number(mapInstance.getZoom() ?? 9)
+        : 9;
+      const nextZoom = currentZoom < 8 ? 8 : currentZoom;
 
-      mapInstance.setView([lat, lng], nextZoom, {
-        animate: true
-      });
+      if (typeof mapInstance.flyTo === 'function') {
+        mapInstance.flyTo([lat, lng], nextZoom, {
+          animate: true,
+          duration: 0.45
+        });
+      } else {
+        mapInstance.setView([lat, lng], nextZoom, {
+          animate: true
+        });
+      }
 
       if (mapLibrary?.popup) {
         mapLibrary
           .popup({ closeButton: false, offset: [0, -10] })
           .setLatLng([lat, lng])
-          .setContent(`<strong>${escapeHtml(row.name)}</strong><br>${escapeHtml(placeLabel)}`)
+          .setContent(
+            `<strong>${escapeHtml(row.name)}</strong><br>${escapeHtml(placeLabel)}<br>${escapeHtml(seenAgo)}`
+          )
           .openOn(mapInstance);
       }
     };
@@ -867,6 +881,7 @@
     messages = [];
     queuedMessages = [];
     locationSharingEnabled = true;
+    focusedParticipantId = null;
     stopLocationWatch();
 
     if (mapInstance) {
@@ -1413,11 +1428,26 @@
 
         <div class="participant-row">
           {#each participants as row}
-            <button type="button" class="pill" on:click={() => focusParticipantOnMap(row)}>
-              <span class="pill-icon" aria-hidden="true">{row.is_leader ? '⭐' : '👤'}</span>
-              <span class="pill-name">{row.name}</span>
-              <small class="pill-time">{formatAgo(row.last_seen_seconds_ago)}</small>
-              <small class="pill-near">{participantNearLabel(row)}</small>
+            <button
+              type="button"
+              class="participant-chip"
+              class:active={focusedParticipantId === row.participant_id}
+              on:click={() => focusParticipantOnMap(row)}
+              aria-label={`Focus ${row.name} on map`}
+            >
+              <span
+                class="participant-avatar"
+                class:leader={row.is_leader}
+                class:online={(row.last_seen_seconds_ago ?? 9999) < 300}
+                class:offline={(row.last_seen_seconds_ago ?? 9999) >= 300}
+              >
+                {#if row.avatar_url}
+                  <img src={row.avatar_url} alt={row.name} />
+                {:else}
+                  <span class="participant-avatar-glyph" aria-hidden="true">{row.is_leader ? '⭐' : '👤'}</span>
+                {/if}
+              </span>
+              <span class="participant-name">{row.name}</span>
             </button>
           {/each}
         </div>
@@ -2109,10 +2139,10 @@
   .participant-row {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(210px, 1fr);
-    gap: 0.55rem;
+    grid-auto-columns: minmax(78px, 92px);
+    gap: 0.45rem;
     overflow-x: auto;
-    padding-bottom: 0.15rem;
+    padding: 0.08rem 0.05rem 0.15rem;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -2124,53 +2154,87 @@
     display: none;
   }
 
-  .pill {
-    background: rgba(39, 62, 113, 0.08);
+  .participant-chip {
+    background: transparent;
     color: inherit;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      'icon name time'
-      'icon near near';
-    align-items: center;
-    column-gap: 0.44rem;
-    row-gap: 0.08rem;
-    text-align: left;
+    justify-items: center;
+    align-content: start;
+    gap: 0.22rem;
     border-radius: 14px;
-    padding: 0.56rem 0.62rem;
+    border: 1px solid transparent;
+    padding: 0.2rem 0.16rem 0.26rem;
   }
 
-  .pill-icon {
-    grid-area: icon;
-    align-self: start;
-    margin-top: 0.03rem;
+  .participant-chip.active {
+    background: rgba(39, 62, 113, 0.08);
+    border-color: rgba(61, 87, 139, 0.22);
   }
 
-  .pill-name {
-    grid-area: name;
-    font-weight: 620;
-    white-space: nowrap;
+  :global(body.theme-night) .participant-chip.active,
+  .app-shell.night .participant-chip.active {
+    background: rgba(66, 103, 172, 0.2);
+    border-color: rgba(142, 172, 232, 0.35);
+  }
+
+  .participant-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    position: relative;
     overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
+    border: 1px solid rgba(54, 83, 134, 0.26);
+    background: rgba(42, 65, 112, 0.12);
   }
 
-  .pill-time {
-    grid-area: time;
-    justify-self: end;
-    align-self: start;
-    opacity: 0.72;
-    font-size: 0.65rem;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
+  .participant-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
-  .pill-near {
-    grid-area: near;
-    opacity: 0.82;
-    font-size: 0.7rem;
-    line-height: 1.16;
-    min-width: 0;
+  .participant-avatar-glyph {
+    font-size: 1.02rem;
+    line-height: 1;
+  }
+
+  .participant-avatar.leader {
+    box-shadow: 0 0 0 2px rgba(198, 62, 112, 0.24);
+  }
+
+  .participant-avatar::after {
+    content: '';
+    position: absolute;
+    right: 1px;
+    bottom: 1px;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    border: 2px solid #f6f7fb;
+    background: #8f9bb5;
+  }
+
+  .participant-avatar.online::after {
+    background: #24b464;
+  }
+
+  :global(body.theme-night) .participant-avatar {
+    border-color: rgba(127, 158, 223, 0.34);
+    background: rgba(25, 50, 96, 0.58);
+  }
+
+  :global(body.theme-night) .participant-avatar::after {
+    border-color: rgba(12, 27, 55, 0.95);
+  }
+
+  .participant-name {
+    font-size: 0.68rem;
+    line-height: 1.06;
+    text-align: center;
+    max-width: 100%;
     display: -webkit-box;
     line-clamp: 2;
     -webkit-line-clamp: 2;
