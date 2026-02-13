@@ -1783,24 +1783,15 @@
   }
 
   :global(body.theme-night) {
-    --accent-main: #c63e70;
-    --accent-main-strong: #e85a8f;
-    --accent-soft: rgba(198, 62, 112, 0.24);
-    --accent-soft-strong: rgba(198, 62, 112, 0.34);
-    --accent-night-text: #ffe9f2;
+    --accent-main: #8f0030;
+    --accent-main-strong: #b30045;
+    --accent-soft: rgba(143, 0, 48, 0.22);
+    --accent-soft-strong: rgba(143, 0, 48, 0.32);
+    --accent-night-text: #ffdce8;
 
-    background-color: #0a1531;
-    background-image: linear-gradient(180deg, #0d1a3c 0%, #0a1531 100%);
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    background-color: #0b1734;
+    background-image: none;
     color: #edf3ff;
-  }
-
-  @media (min-width: 900px) {
-    :global(body.theme-night) {
-      background-image: none;
-      background-color: #0b1734;
-    }
   }
 
   :global(*) {
@@ -2187,6 +2178,22 @@
   .empty-state p {
     margin: 0.22rem 0 0;
     font-size: 0.84rem;
+  }
+
+  :global(body.theme-night) .map-empty,
+  :global(body.theme-night) .empty-state,
+  .app-shell.night .map-empty,
+  .app-shell.night .empty-state {
+    border-color: rgba(129, 163, 228, 0.34);
+    background: rgba(13, 28, 58, 0.88);
+    color: #e8efff;
+  }
+
+  :global(body.theme-night) .map-empty p,
+  :global(body.theme-night) .empty-state p,
+  .app-shell.night .map-empty p,
+  .app-shell.night .empty-state p {
+    color: #c6d4f2;
   }
 
   .participant-strip-tools {
