@@ -2738,8 +2738,8 @@
   }
 
   :global(body.theme-neo) .join-mode-toggle button.signin-option.active {
-    background: var(--neo-pink);
-    color: #6e0022;
+    background: var(--neo-red);
+    color: var(--neo-white);
   }
 
   :global(body.theme-neo) .join-mode-toggle button.active::after {
