@@ -1414,12 +1414,10 @@
         <div class="participant-row">
           {#each participants as row}
             <button type="button" class="pill" on:click={() => focusParticipantOnMap(row)}>
-              <span>{row.is_leader ? '⭐' : '👤'}</span>
-              <span class="pill-main">
-                <span class="pill-name">{row.name}</span>
-                <small class="pill-near">{participantNearLabel(row)}</small>
-              </span>
-              <small>{formatAgo(row.last_seen_seconds_ago)}</small>
+              <span class="pill-icon" aria-hidden="true">{row.is_leader ? '⭐' : '👤'}</span>
+              <span class="pill-name">{row.name}</span>
+              <small class="pill-time">{formatAgo(row.last_seen_seconds_ago)}</small>
+              <small class="pill-near">{participantNearLabel(row)}</small>
             </button>
           {/each}
         </div>
@@ -2103,7 +2101,7 @@
   .participant-row {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(160px, 1fr);
+    grid-auto-columns: minmax(210px, 1fr);
     gap: 0.55rem;
     overflow-x: auto;
     padding-bottom: 0.15rem;
@@ -2113,42 +2111,54 @@
     background: rgba(39, 62, 113, 0.08);
     color: inherit;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'icon name time'
+      'icon near near';
     align-items: center;
-    gap: 0.35rem;
+    column-gap: 0.44rem;
+    row-gap: 0.08rem;
     text-align: left;
     border-radius: 14px;
+    padding: 0.56rem 0.62rem;
   }
 
-  .pill-main {
-    display: grid;
-    gap: 0.08rem;
-    min-width: 0;
+  .pill-icon {
+    grid-area: icon;
+    align-self: start;
+    margin-top: 0.03rem;
   }
 
   .pill-name {
+    grid-area: name;
     font-weight: 620;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .pill-time {
+    grid-area: time;
+    justify-self: end;
+    align-self: start;
+    opacity: 0.72;
+    font-size: 0.65rem;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
   }
 
   .pill-near {
-    opacity: 0.76;
-    font-size: 0.69rem;
-    white-space: nowrap;
+    grid-area: near;
+    opacity: 0.82;
+    font-size: 0.7rem;
+    line-height: 1.16;
+    min-width: 0;
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .pill small {
-    opacity: 0.75;
-    font-size: 0.73rem;
-  }
-
-  .pill-main .pill-near {
-    font-size: 0.69rem;
-    opacity: 0.76;
   }
 
   .timeline {
