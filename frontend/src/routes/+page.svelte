@@ -85,6 +85,36 @@
     };
   };
 
+  type StopPhase = 'moving' | 'candidate' | 'stopped' | 'offline';
+
+  type StopTracker = {
+    participant_id: number;
+    phase: Exclude<StopPhase, 'offline'>;
+    anchor_lat: number;
+    anchor_lng: number;
+    anchor_place_label: string;
+    started_at_ms: number;
+    last_recorded_at_ms: number;
+  };
+
+  type ParticipantStopInsight = {
+    participant_id: number;
+    phase: StopPhase;
+    place_label: string;
+    place_phrase: string;
+    stopped_for_seconds: number;
+    candidate_for_seconds: number;
+    started_at_iso: string | null;
+  };
+
+  type StopEvent = {
+    id: number;
+    participant_id: number;
+    kind: 'stopped' | 'moving';
+    text: string;
+    created_at: string;
+  };
+
   type WaypointRow = {
     id: number;
     name: string;
@@ -193,6 +223,18 @@
   let mapAutoFramed = false;
   let previousLocationCount = 0;
 
+  let latestLocationsServerTimeIso: string | null = null;
+  let stopTrackersById: Record<number, StopTracker> = {};
+  let stopInsightsById: Record<number, ParticipantStopInsight> = {};
+  let stopEvents: StopEvent[] = [];
+  let nextStopEventId = 0;
+
+  const STOP_DETECTION_RADIUS_METERS = 130;
+  const STOP_MIN_SECONDS = 6 * 60;
+  const MOVING_SPEED_MPS = 2.2;
+  const STOP_EVENT_MAX = 8;
+  const STOP_OFFLINE_SECONDS = 10 * 60;
+
   const inAppTabs: Array<{ id: Tab; label: string; icon: string }> = [
     { id: 'map', label: 'Map', icon: '🗺️' },
     { id: 'waypoints', label: 'Plan', icon: '📍' },
@@ -208,6 +250,22 @@
     : participants;
   $: canSendAlert = myParticipant?.is_leader === true;
   $: queuedCount = queuedMessages.length;
+  $: stoppedParticipantRows = participants
+    .map((row) => {
+      const insight = stopInsightsById[row.participant_id];
+      if (!insight || insight.phase !== 'stopped') return null;
+      return {
+        row,
+        insight,
+      };
+    })
+    .filter((item): item is { row: ParticipantLocationRow; insight: ParticipantStopInsight } => item !== null)
+    .sort((a, b) => b.insight.stopped_for_seconds - a.insight.stopped_for_seconds);
+  $: movingParticipantCount = participants.filter((row) => {
+    const insight = stopInsightsById[row.participant_id];
+    return insight && (insight.phase === 'moving' || insight.phase === 'candidate');
+  }).length;
+  $: recentStopEvents = stopEvents.slice(0, 4);
 
   $: if (typeof document !== 'undefined') {
     document.body.classList.add('theme-neo');
@@ -221,6 +279,7 @@
     // Keep map markers in sync with live participant refreshes.
     // (Svelte only tracks vars referenced directly in this block.)
     mapRows;
+    stopInsightsById;
     retreatInfo?.destination?.lat;
     retreatInfo?.destination?.lng;
     renderLiveMap();
@@ -254,6 +313,70 @@
     if (distance === null || distance === undefined || !Number.isFinite(distance)) return '';
     if (distance < 1000) return `${Math.round(distance)}m`;
     return `${(distance / 1000).toFixed(1)}km`;
+  }
+
+  function formatDurationCompact(totalSeconds: number | null | undefined): string {
+    if (totalSeconds === null || totalSeconds === undefined || !Number.isFinite(totalSeconds)) return '0m';
+    const seconds = Math.max(0, Math.floor(totalSeconds));
+    if (seconds < 60) return `${seconds}s`;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (!hours) return `${minutes}m`;
+    if (!minutes) return `${hours}h`;
+    return `${hours}h ${minutes}m`;
+  }
+
+  function formatDurationWords(totalSeconds: number | null | undefined): string {
+    if (totalSeconds === null || totalSeconds === undefined || !Number.isFinite(totalSeconds)) return '0 minutes';
+    const seconds = Math.max(0, Math.floor(totalSeconds));
+    if (seconds < 60) return `${seconds} second${seconds === 1 ? '' : 's'}`;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (!hours) return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+    if (!minutes) return `${hours} hour${hours === 1 ? '' : 's'}`;
+    return `${hours} hour${hours === 1 ? '' : 's'} ${minutes} minute${minutes === 1 ? '' : 's'}`;
+  }
+
+  function parseIsoMs(iso: string | null | undefined): number | null {
+    if (!iso) return null;
+    const value = Date.parse(iso);
+    return Number.isFinite(value) ? value : null;
+  }
+
+  function distanceBetweenMeters(aLat: number, aLng: number, bLat: number, bLng: number): number {
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const dLat = toRad(bLat - aLat);
+    const dLng = toRad(bLng - aLng);
+    const lat1 = toRad(aLat);
+    const lat2 = toRad(bLat);
+
+    const a = Math.sin(dLat / 2) ** 2
+      + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+
+    return 6371000 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  }
+
+  function cleanPlaceLabel(label: string | null | undefined): string {
+    if (!label) return '';
+    return label.trim().replace(/^(at|near)\s+/i, '').trim();
+  }
+
+  function participantPlaceLabel(row: ParticipantLocationRow): string {
+    const placeLabel = cleanPlaceLabel(row.location?.place?.label ?? null);
+    if (placeLabel) return placeLabel;
+
+    if (hasValidCoords(row.location?.lat, row.location?.lng)) {
+      return `${Number(row.location!.lat).toFixed(3)}, ${Number(row.location!.lng).toFixed(3)}`;
+    }
+
+    return 'unknown location';
+  }
+
+  function participantPlacePhrase(row: ParticipantLocationRow): string {
+    const placeLabel = participantPlaceLabel(row);
+    const relation = row.location?.place?.relation;
+    if (relation === 'near') return `near ${placeLabel}`;
+    return `at ${placeLabel}`;
   }
 
   function participantNearLabel(row: ParticipantLocationRow): string {
@@ -292,6 +415,152 @@
 
   function participantLocationRows(rows: ParticipantLocationRow[]): ParticipantLocationRow[] {
     return rows.filter((row) => hasValidCoords(row.location?.lat, row.location?.lng));
+  }
+
+  function stopInsightForParticipant(participantId: number): ParticipantStopInsight | null {
+    return stopInsightsById[participantId] ?? null;
+  }
+
+  function stopBadgeForRow(row: ParticipantLocationRow): string | null {
+    const insight = stopInsightForParticipant(row.participant_id);
+    if (!insight) return null;
+    if (insight.phase === 'stopped') return `🛑 ${formatDurationCompact(insight.stopped_for_seconds)}`;
+    if (insight.phase === 'candidate' && insight.candidate_for_seconds >= 90) {
+      return `⏳ ${formatDurationCompact(insight.candidate_for_seconds)}`;
+    }
+    return null;
+  }
+
+  function syncStopIntelligence(rows: ParticipantLocationRow[], serverTimeIso: string | null): void {
+    const observedAtMs = parseIsoMs(serverTimeIso) ?? Date.now();
+    const nextTrackers: Record<number, StopTracker> = {};
+    const nextInsights: Record<number, ParticipantStopInsight> = {};
+    const emittedEvents: StopEvent[] = [];
+
+    for (const row of rows) {
+      const id = row.participant_id;
+      const location = row.location;
+
+      if (!location || !hasValidCoords(location.lat, location.lng)) {
+        nextInsights[id] = {
+          participant_id: id,
+          phase: 'offline',
+          place_label: 'Location unavailable',
+          place_phrase: 'at an unknown location',
+          stopped_for_seconds: 0,
+          candidate_for_seconds: 0,
+          started_at_iso: null,
+        };
+        continue;
+      }
+
+      const lat = Number(location.lat);
+      const lng = Number(location.lng);
+      const recordedAtMs = parseIsoMs(location.recorded_at) ?? observedAtMs;
+      const speedMps = location.speed ?? null;
+      const stale = (row.last_seen_seconds_ago ?? 0) >= STOP_OFFLINE_SECONDS;
+
+      const placeLabel = participantPlaceLabel(row);
+      const placePhrase = participantPlacePhrase(row);
+
+      const previous = stopTrackersById[id];
+      let tracker: StopTracker = previous
+        ? { ...previous }
+        : {
+            participant_id: id,
+            phase: 'moving',
+            anchor_lat: lat,
+            anchor_lng: lng,
+            anchor_place_label: placeLabel,
+            started_at_ms: recordedAtMs,
+            last_recorded_at_ms: recordedAtMs,
+          };
+
+      let candidateForSeconds = 0;
+      let stoppedForSeconds = 0;
+      let insightPhase: StopPhase = 'moving';
+
+      if (stale) {
+        insightPhase = 'offline';
+      } else {
+        const driftMeters = distanceBetweenMeters(tracker.anchor_lat, tracker.anchor_lng, lat, lng);
+        const movingByDistance = driftMeters > STOP_DETECTION_RADIUS_METERS;
+        const movingBySpeed = speedMps !== null && Number.isFinite(speedMps) && speedMps > MOVING_SPEED_MPS;
+
+        if (movingByDistance || movingBySpeed) {
+          if (tracker.phase === 'stopped') {
+            const stoppedDuration = Math.max(0, Math.floor((recordedAtMs - tracker.started_at_ms) / 1000));
+            const resumePlace = tracker.anchor_place_label ? ` near ${tracker.anchor_place_label}` : '';
+            emittedEvents.push({
+              id: ++nextStopEventId,
+              participant_id: id,
+              kind: 'moving',
+              text: `${row.name} started moving again after ${formatDurationWords(stoppedDuration)}${resumePlace}.`,
+              created_at: new Date(observedAtMs).toISOString(),
+            });
+          }
+
+          tracker = {
+            participant_id: id,
+            phase: 'moving',
+            anchor_lat: lat,
+            anchor_lng: lng,
+            anchor_place_label: placeLabel,
+            started_at_ms: recordedAtMs,
+            last_recorded_at_ms: recordedAtMs,
+          };
+
+          insightPhase = 'moving';
+        } else {
+          if (tracker.phase === 'moving') {
+            tracker.phase = 'candidate';
+            tracker.started_at_ms = tracker.last_recorded_at_ms;
+          }
+
+          tracker.last_recorded_at_ms = recordedAtMs;
+          tracker.anchor_place_label = placeLabel;
+
+          candidateForSeconds = Math.max(0, Math.floor((recordedAtMs - tracker.started_at_ms) / 1000));
+
+          if (candidateForSeconds >= STOP_MIN_SECONDS) {
+            if (tracker.phase !== 'stopped') {
+              tracker.phase = 'stopped';
+              emittedEvents.push({
+                id: ++nextStopEventId,
+                participant_id: id,
+                kind: 'stopped',
+                text: `${row.name} stopped ${placePhrase} (${formatDurationWords(candidateForSeconds)}).`,
+                created_at: new Date(observedAtMs).toISOString(),
+              });
+            }
+
+            insightPhase = 'stopped';
+            stoppedForSeconds = Math.max(0, Math.floor((Math.max(observedAtMs, recordedAtMs) - tracker.started_at_ms) / 1000));
+          } else {
+            insightPhase = 'candidate';
+          }
+        }
+      }
+
+      nextTrackers[id] = tracker;
+
+      nextInsights[id] = {
+        participant_id: id,
+        phase: insightPhase,
+        place_label: placeLabel,
+        place_phrase: placePhrase,
+        stopped_for_seconds: stoppedForSeconds,
+        candidate_for_seconds: candidateForSeconds,
+        started_at_iso: new Date(tracker.started_at_ms).toISOString(),
+      };
+    }
+
+    stopTrackersById = nextTrackers;
+    stopInsightsById = nextInsights;
+
+    if (emittedEvents.length > 0) {
+      stopEvents = [...emittedEvents.reverse(), ...stopEvents].slice(0, STOP_EVENT_MAX);
+    }
   }
 
   async function ensureMapReady(): Promise<void> {
@@ -355,23 +624,46 @@
       const lat = Number(row.location!.lat);
       const lng = Number(row.location!.lng);
 
-      const color = row.is_current_user
+      const stopInsight = stopInsightForParticipant(row.participant_id);
+      const isStopped = stopInsight?.phase === 'stopped';
+      const isCandidate = stopInsight?.phase === 'candidate';
+
+      const baseColor = row.is_current_user
         ? '#1f9e59'
         : row.is_leader
           ? '#8f0030'
           : '#2458c6';
 
+      const color = isStopped ? '#cc1f2f' : baseColor;
+
       const marker = mapLibrary.circleMarker([lat, lng], {
-        radius: row.is_current_user ? 9 : 7,
+        radius: isStopped ? 10 : row.is_current_user ? 9 : 7,
         color,
-        weight: row.is_current_user ? 3 : 2,
+        weight: isStopped ? 3 : row.is_current_user ? 3 : 2,
         fillColor: color,
-        fillOpacity: 0.9
+        fillOpacity: isStopped ? 0.96 : 0.9
       });
 
+      if (isStopped) {
+        mapLibrary.circle([lat, lng], {
+          radius: STOP_DETECTION_RADIUS_METERS,
+          color: '#cc1f2f',
+          weight: 1,
+          dashArray: '5 4',
+          fillColor: '#ff8893',
+          fillOpacity: 0.08
+        }).addTo(mapLayer);
+      }
+
       const placeLabel = participantNearLabel(row);
+      const stopLine = isStopped
+        ? `<br>🛑 Stopped ${escapeHtml(formatDurationCompact(stopInsight?.stopped_for_seconds))}`
+        : isCandidate && stopInsight
+          ? `<br>⏳ Holding ${escapeHtml(formatDurationCompact(stopInsight.candidate_for_seconds))}`
+          : '';
+
       marker.bindPopup(
-        `<strong>${escapeHtml(row.name)}</strong><br>${escapeHtml(placeLabel)}<br>${escapeHtml(formatAgo(row.last_seen_seconds_ago))}`
+        `<strong>${escapeHtml(row.name)}</strong><br>${escapeHtml(placeLabel)}<br>${escapeHtml(formatAgo(row.last_seen_seconds_ago))}${stopLine}`
       );
       marker.addTo(mapLayer);
       points.push([lat, lng]);
@@ -559,6 +851,8 @@
       retreatInfo = statusPayload.data.retreat;
 
       participants = locationsPayload.data;
+      latestLocationsServerTimeIso = locationsPayload.meta.server_time ?? new Date().toISOString();
+      syncStopIntelligence(participants, latestLocationsServerTimeIso);
       waypoints = [...waypointsPayload.data].sort((a, b) => a.order - b.order);
       messages = messagesPayload.data;
 
@@ -590,6 +884,8 @@
       ]);
 
       participants = locationsPayload.data;
+      latestLocationsServerTimeIso = locationsPayload.meta.server_time ?? new Date().toISOString();
+      syncStopIntelligence(participants, latestLocationsServerTimeIso);
       waypoints = [...waypointsPayload.data].sort((a, b) => a.order - b.order);
       messages = messagesPayload.data;
 
@@ -730,6 +1026,7 @@
     const lng = Number(row.location!.lng);
     const placeLabel = participantNearLabel(row);
     const seenAgo = formatAgo(row.last_seen_seconds_ago);
+    const stopInsight = stopInsightForParticipant(row.participant_id);
 
     const applyFocus = () => {
       if (!mapInstance) return;
@@ -766,7 +1063,7 @@
           .popup({ closeButton: false, offset: [0, -10] })
           .setLatLng([lat, lng])
           .setContent(
-            `<strong>${escapeHtml(row.name)}</strong><br>${escapeHtml(placeLabel)}<br>${escapeHtml(seenAgo)}`
+            `<strong>${escapeHtml(row.name)}</strong><br>${escapeHtml(placeLabel)}<br>${escapeHtml(seenAgo)}${stopInsight?.phase === 'stopped' ? `<br>🛑 Stopped ${escapeHtml(formatDurationCompact(stopInsight.stopped_for_seconds))}` : ''}`
           )
           .openOn(mapInstance);
       };
@@ -910,6 +1207,11 @@
     queuedMessages = [];
     locationSharingEnabled = true;
     focusedParticipantId = null;
+    latestLocationsServerTimeIso = null;
+    stopTrackersById = {};
+    stopInsightsById = {};
+    stopEvents = [];
+    nextStopEventId = 0;
     stopLocationWatch();
 
     if (mapInstance) {
@@ -1100,6 +1402,9 @@
         last_seen_seconds_ago: 36
       }
     ];
+
+    latestLocationsServerTimeIso = nowIso;
+    syncStopIntelligence(participants, latestLocationsServerTimeIso);
 
     waypoints = [
       {
@@ -1450,6 +1755,46 @@
           </span>
         </p>
 
+        <section class="stop-intel card" aria-live="polite">
+          <header class="stop-intel-head">
+            <div>
+              <h4>Stop Intelligence</h4>
+              <p>Automatic dwell detection for prolonged stops in the same area.</p>
+            </div>
+            <small>
+              {stoppedParticipantRows.length} stopped · {movingParticipantCount} moving
+              {#if latestLocationsServerTimeIso}
+                · updated {formatTime(latestLocationsServerTimeIso)}
+              {/if}
+            </small>
+          </header>
+
+          {#if stoppedParticipantRows.length === 0}
+            <div class="stop-intel-empty subtle">No prolonged stops detected yet.</div>
+          {:else}
+            <div class="stop-intel-grid">
+              {#each stoppedParticipantRows as item}
+                <article class="stop-intel-item">
+                  <strong>{item.row.name}</strong>
+                  <p>🛑 Stopped {item.insight.place_phrase}</p>
+                  <small>{formatDurationWords(item.insight.stopped_for_seconds)} here</small>
+                </article>
+              {/each}
+            </div>
+          {/if}
+
+          {#if recentStopEvents.length > 0}
+            <div class="stop-feed" role="log" aria-label="Recent stop events">
+              {#each recentStopEvents as event}
+                <div class={`stop-feed-item ${event.kind}`}>
+                  <span aria-hidden="true">{event.kind === 'stopped' ? '🚨' : '✅'}</span>
+                  <span>{event.text}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </section>
+
         <div class="participant-strip-tools">
           <div class="participant-strip-filter" role="group" aria-label="Participant filter">
             <button
@@ -1485,6 +1830,7 @@
                 type="button"
                 class="participant-chip"
                 class:active={focusedParticipantId === row.participant_id}
+                class:stopped={stopInsightForParticipant(row.participant_id)?.phase === 'stopped'}
                 on:click={() => focusParticipantOnMap(row)}
                 aria-label={`Focus ${row.name} on map`}
               >
@@ -1502,6 +1848,9 @@
                   <span class="participant-status-dot" aria-hidden="true"></span>
                 </span>
                 <span class="participant-name">{row.name}</span>
+                {#if stopBadgeForRow(row)}
+                  <small class="participant-stop-badge">{stopBadgeForRow(row)}</small>
+                {/if}
               </button>
             {/each}
           </div>
@@ -1741,6 +2090,9 @@
         </button>
       </div>
 
+      {#if stopInsightForParticipant(selectedParticipant.participant_id)?.phase === 'stopped'}
+        <small class="subtle">🛑 Stopped {stopInsightForParticipant(selectedParticipant.participant_id)?.place_phrase} for {formatDurationWords(stopInsightForParticipant(selectedParticipant.participant_id)?.stopped_for_seconds)}</small>
+      {/if}
       <small class="subtle">Last seen: {formatAgo(selectedParticipant.last_seen_seconds_ago)}</small>
     </article>
   </section>
@@ -2142,6 +2494,102 @@
     gap: 0.6rem;
   }
 
+  .stop-intel {
+    margin-top: 0.2rem;
+    padding: 0.72rem;
+    display: grid;
+    gap: 0.62rem;
+    border-radius: 14px;
+    border: 1px solid rgba(143, 0, 48, 0.18);
+    background: linear-gradient(180deg, rgba(255, 247, 247, 0.96), rgba(255, 239, 239, 0.88));
+  }
+
+  .stop-intel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.65rem;
+  }
+
+  .stop-intel-head h4 {
+    margin: 0;
+    font-size: 0.88rem;
+  }
+
+  .stop-intel-head p {
+    margin: 0.2rem 0 0;
+    font-size: 0.74rem;
+    color: #6a7284;
+  }
+
+  .stop-intel-head small {
+    font-size: 0.69rem;
+    font-weight: 700;
+    color: #8f0030;
+    white-space: nowrap;
+  }
+
+  .stop-intel-empty {
+    font-size: 0.76rem;
+  }
+
+  .stop-intel-grid {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .stop-intel-item {
+    border: 1px solid rgba(143, 0, 48, 0.18);
+    border-radius: 12px;
+    padding: 0.48rem 0.56rem;
+    background: rgba(255, 255, 255, 0.84);
+  }
+
+  .stop-intel-item strong {
+    display: block;
+    font-size: 0.79rem;
+  }
+
+  .stop-intel-item p {
+    margin: 0.18rem 0 0;
+    font-size: 0.77rem;
+  }
+
+  .stop-intel-item small {
+    display: block;
+    margin-top: 0.16rem;
+    color: #6b7384;
+    font-size: 0.71rem;
+  }
+
+  .stop-feed {
+    display: grid;
+    gap: 0.34rem;
+  }
+
+  .stop-feed-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.74rem;
+    line-height: 1.22;
+    border-radius: 10px;
+    padding: 0.4rem 0.48rem;
+    border: 1px dashed rgba(74, 84, 109, 0.35);
+    background: rgba(255, 255, 255, 0.78);
+  }
+
+  .stop-feed-item.stopped {
+    border-color: rgba(204, 31, 47, 0.42);
+    background: rgba(255, 232, 234, 0.9);
+  }
+
+  .stop-feed-item.moving {
+    border-color: rgba(25, 129, 83, 0.4);
+    background: rgba(233, 255, 243, 0.9);
+  }
+
   .participant-strip-filter {
     display: inline-grid;
     grid-template-columns: 1fr 1fr;
@@ -2217,6 +2665,30 @@
   .participant-chip.active {
     background: rgba(39, 62, 113, 0.08);
     border-color: rgba(61, 87, 139, 0.22);
+  }
+
+  .participant-chip.stopped {
+    border-color: rgba(196, 35, 48, 0.4);
+    background: rgba(255, 233, 236, 0.75);
+  }
+
+  .participant-stop-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.08rem;
+    border-radius: 999px;
+    border: 1px solid rgba(196, 35, 48, 0.35);
+    background: rgba(255, 236, 238, 0.9);
+    padding: 0.08rem 0.32rem;
+    font-size: 0.61rem;
+    line-height: 1;
+    font-weight: 700;
+    color: #8f0030;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .participant-avatar {
@@ -2810,6 +3282,11 @@
   :global(body.theme-neo) .empty-state,
   :global(body.theme-neo) .participant-avatar,
   :global(body.theme-neo) .participant-chip.active,
+  :global(body.theme-neo) .participant-chip.stopped,
+  :global(body.theme-neo) .participant-stop-badge,
+  :global(body.theme-neo) .stop-intel,
+  :global(body.theme-neo) .stop-intel-item,
+  :global(body.theme-neo) .stop-feed-item,
   :global(body.theme-neo) .participant-sheet .place-label-line,
   :global(body.theme-neo) .alert-preview,
   :global(body.theme-neo) .avatar-wrap,
@@ -2850,6 +3327,28 @@
 
   :global(body.theme-neo) .join-notes {
     background: var(--neo-purple);
+  }
+
+  :global(body.theme-neo) .stop-intel {
+    background: #ffe7ea;
+  }
+
+  :global(body.theme-neo) .stop-intel-item {
+    background: var(--neo-white);
+  }
+
+  :global(body.theme-neo) .stop-feed-item.stopped {
+    background: #ffd5db;
+  }
+
+  :global(body.theme-neo) .stop-feed-item.moving {
+    background: #d9ffe1;
+  }
+
+  :global(body.theme-neo) .participant-chip.stopped,
+  :global(body.theme-neo) .participant-stop-badge {
+    background: #ffd5db;
+    color: #4a0404;
   }
 
   :global(body.theme-neo) .topbar {
