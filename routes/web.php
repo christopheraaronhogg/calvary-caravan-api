@@ -15,15 +15,30 @@ Route::get('/mobile/{path?}', function (?string $path = null) {
 
     abort_if($mobileRoot === false, 404, 'Mobile web build is missing. Run: cd frontend && npm run build');
 
-    if ($path !== null && $path !== '') {
-        $candidate = realpath($mobileRoot.DIRECTORY_SEPARATOR.ltrim($path, '/'));
+    $requestedPath = ltrim((string) $path, '/');
+
+    if ($requestedPath !== '') {
+        $candidate = realpath($mobileRoot.DIRECTORY_SEPARATOR.$requestedPath);
 
         if (
             $candidate !== false
             && str_starts_with($candidate, $mobileRoot.DIRECTORY_SEPARATOR)
             && is_file($candidate)
         ) {
+            if (str_ends_with($candidate, '.html')) {
+                return response()->file($candidate, [
+                    'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                    'Pragma' => 'no-cache',
+                    'Expires' => '0',
+                ]);
+            }
+
             return response()->file($candidate);
+        }
+
+        // Do not fallback HTML for missing static assets (e.g., hashed JS/CSS).
+        if (preg_match('/\.[a-z0-9]+$/i', $requestedPath)) {
+            abort(404, 'Mobile asset not found');
         }
     }
 
@@ -31,7 +46,11 @@ Route::get('/mobile/{path?}', function (?string $path = null) {
 
     abort_unless(is_file($fallback), 404, 'Mobile web index is missing. Run: cd frontend && npm run build');
 
-    return response()->file($fallback);
+    return response()->file($fallback, [
+        'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma' => 'no-cache',
+        'Expires' => '0',
+    ]);
 })->where('path', '.*');
 
 Route::get('/privacy', function () {
