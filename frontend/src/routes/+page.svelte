@@ -739,18 +739,29 @@
         : 9;
       const nextZoom = currentZoom < 8 ? 8 : currentZoom;
 
-      if (typeof mapInstance.flyTo === 'function') {
-        mapInstance.flyTo([lat, lng], nextZoom, {
+      if (typeof mapInstance.stop === 'function') {
+        mapInstance.stop();
+      }
+
+      if (typeof mapInstance.getZoom === 'function' && typeof mapInstance.setZoom === 'function' && currentZoom !== nextZoom) {
+        mapInstance.setZoom(nextZoom, { animate: false });
+      }
+
+      if (typeof mapInstance.panTo === 'function') {
+        mapInstance.panTo([lat, lng], {
           animate: true,
-          duration: 0.45
+          duration: 0.28,
+          easeLinearity: 0.3
         });
       } else {
         mapInstance.setView([lat, lng], nextZoom, {
-          animate: true
+          animate: false
         });
       }
 
-      if (mapLibrary?.popup) {
+      const openFocusPopup = () => {
+        if (!mapLibrary?.popup || !mapInstance) return;
+
         mapLibrary
           .popup({ closeButton: false, offset: [0, -10] })
           .setLatLng([lat, lng])
@@ -758,7 +769,9 @@
             `<strong>${escapeHtml(row.name)}</strong><br>${escapeHtml(placeLabel)}<br>${escapeHtml(seenAgo)}`
           )
           .openOn(mapInstance);
-      }
+      };
+
+      openFocusPopup();
     };
 
     if (!mapInstance) {
