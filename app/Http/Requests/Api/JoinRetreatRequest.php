@@ -18,7 +18,8 @@ class JoinRetreatRequest extends FormRequest
     {
         return [
             'code' => 'required|string|min:4|max:12',
-            'name' => 'required|string|min:2|max:50',
+            'auth_mode' => 'nullable|string|in:join,signin',
+            'name' => 'required_unless:auth_mode,signin|string|min:2|max:50',
             'phone_number' => ['required', 'string', 'max:24', 'regex:/^\+[1-9]\d{7,14}$/'],
             'gender' => 'nullable|string|in:male,female',
             'vehicle_color' => 'nullable|string|max:30',
@@ -31,10 +32,18 @@ class JoinRetreatRequest extends FormRequest
     {
         $normalized = PhoneNumber::normalize($this->input('phone_number'));
 
+        $merge = [];
+
         if ($normalized) {
-            $this->merge([
-                'phone_number' => $normalized,
-            ]);
+            $merge['phone_number'] = $normalized;
+        }
+
+        if ($this->filled('auth_mode')) {
+            $merge['auth_mode'] = strtolower(trim((string) $this->input('auth_mode')));
+        }
+
+        if (! empty($merge)) {
+            $this->merge($merge);
         }
     }
 

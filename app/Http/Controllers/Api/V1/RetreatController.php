@@ -35,6 +35,7 @@ class RetreatController extends Controller
         $inputCode = strtoupper($request->validated('code'));
         $code = self::RETREAT_CODE_ALIASES[$inputCode] ?? $inputCode;
         $phoneE164 = $request->validated('phone_number');
+        $authMode = strtolower((string) ($request->validated('auth_mode') ?? 'join'));
 
         $retreat = Retreat::where('code', $code)
             ->joinable()
@@ -51,25 +52,48 @@ class RetreatController extends Controller
             ->where('phone_e164', $phoneE164)
             ->first();
 
+        if ($authMode === 'signin' && ! $existingParticipant) {
+            return response()->json([
+                'error' => 'No existing participant found for that phone number. Use Join first.',
+            ], 422);
+        }
+
         $participant = $existingParticipant ?? new RetreatParticipant;
+
+        $name = $authMode === 'signin'
+            ? (string) ($existingParticipant?->name ?? $request->validated('name'))
+            : $request->validated('name');
+
+        $gender = null;
+        if (Schema::hasColumn('retreat_participants', 'gender')) {
+            $gender = $authMode === 'signin'
+                ? ($request->filled('gender') ? $request->validated('gender') : $existingParticipant?->gender)
+                : $request->validated('gender');
+        }
+
+        $vehicleColor = $authMode === 'signin'
+            ? ($request->filled('vehicle_color') ? $request->validated('vehicle_color') : $existingParticipant?->vehicle_color)
+            : $request->validated('vehicle_color');
+
+        $vehicleDescription = $authMode === 'signin'
+            ? ($request->filled('vehicle_description') ? $request->validated('vehicle_description') : $existingParticipant?->vehicle_description)
+            : $request->validated('vehicle_description');
 
         $participant->forceFill([
             'retreat_id' => $retreat->id,
-            'name' => $request->validated('name'),
+            'name' => $name,
             'phone_e164' => $phoneE164,
-            'gender' => Schema::hasColumn('retreat_participants', 'gender')
-                ? $request->validated('gender')
-                : null,
+            'gender' => $gender,
             'is_leader' => $this->identityService->resolveLeaderFlag(
                 (int) $retreat->id,
                 $phoneE164,
                 $existingParticipant
             ),
             'device_token' => Str::uuid()->toString(),
-            'expo_push_token' => $request->validated('expo_push_token'),
-            'vehicle_color' => $request->validated('vehicle_color'),
-            'vehicle_description' => $request->validated('vehicle_description'),
-            'joined_at' => now(),
+            'expo_push_token' => $request->validated('expo_push_token') ?? $existingParticipant?->expo_push_token,
+            'vehicle_color' => $vehicleColor,
+            'vehicle_description' => $vehicleDescription,
+            'joined_at' => $existingParticipant?->joined_at ?? now(),
             'last_seen_at' => now(),
         ])->save();
 

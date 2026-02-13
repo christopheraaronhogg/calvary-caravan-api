@@ -169,6 +169,48 @@ class RetreatApiTest extends TestCase
             ->assertJsonPath('data.participant.phone_display', '+1••••••5761');
     }
 
+    public function test_signin_mode_allows_existing_participant_with_phone_and_code_only(): void
+    {
+        $this->createActiveRetreat(['code' => 'TEST26']);
+
+        $firstJoin = $this->postJson('/api/v1/retreat/join', [
+            'code' => 'TEST26',
+            'name' => 'Chris Hogg',
+            'phone_number' => '+15012315761',
+            'vehicle_color' => 'Black',
+            'vehicle_description' => 'Ford F-150',
+        ])->assertOk()->json('data');
+
+        $signIn = $this->postJson('/api/v1/retreat/join', [
+            'auth_mode' => 'signin',
+            'code' => 'TEST26',
+            'phone_number' => '(501) 231-5761',
+        ])->assertOk()->json('data');
+
+        $this->assertSame($firstJoin['participant_id'], $signIn['participant_id']);
+        $this->assertNotSame($firstJoin['device_token'], $signIn['device_token']);
+
+        $this->assertDatabaseHas('retreat_participants', [
+            'id' => $firstJoin['participant_id'],
+            'name' => 'Chris Hogg',
+            'phone_e164' => '+15012315761',
+            'vehicle_color' => 'Black',
+            'vehicle_description' => 'Ford F-150',
+        ]);
+    }
+
+    public function test_signin_mode_requires_existing_phone_identity(): void
+    {
+        $this->createActiveRetreat(['code' => 'TEST26']);
+
+        $this->postJson('/api/v1/retreat/join', [
+            'auth_mode' => 'signin',
+            'code' => 'TEST26',
+            'phone_number' => '+15012315761',
+        ])->assertStatus(422)
+            ->assertJsonPath('error', 'No existing participant found for that phone number. Use Join first.');
+    }
+
     public function test_account_deletion_requires_confirmation_flag(): void
     {
         $this->createActiveRetreat(['code' => 'TEST26']);

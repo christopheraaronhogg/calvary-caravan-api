@@ -6,6 +6,7 @@
   type Tab = 'map' | 'waypoints' | 'chat' | 'alert' | 'profile';
   type ComposerMode = 'chat' | 'prayer';
   type ThemeMode = 'day' | 'night';
+  type JoinMode = 'join' | 'signin';
 
   type PlaceLabel = {
     label: string;
@@ -146,6 +147,7 @@
   let themeMode: ThemeMode = 'day';
   let online = true;
 
+  let joinMode: JoinMode = 'join';
   let joinCode = '';
   let joinName = '';
   let joinPhoneNumber = '';
@@ -514,11 +516,12 @@
       const payload = await api<JoinResponse>('/join', {
         method: 'POST',
         body: JSON.stringify({
+          auth_mode: joinMode,
           code: normalizeCode(joinCode),
-          name: joinName.trim(),
+          name: joinMode === 'join' ? joinName.trim() : undefined,
           phone_number: joinPhoneNumber.trim(),
-          vehicle_color: joinVehicleColor.trim() || null,
-          vehicle_description: joinVehicleDescription.trim() || null
+          vehicle_color: joinMode === 'join' ? (joinVehicleColor.trim() || null) : undefined,
+          vehicle_description: joinMode === 'join' ? (joinVehicleDescription.trim() || null) : undefined
         })
       });
 
@@ -1216,11 +1219,22 @@
     <section class="join-card">
       <div class="join-header">
         <span class="eyebrow">Calvary Caravan</span>
-        <h1>Join the Retreat</h1>
-        <p>Enter your retreat code, phone number, and basic details to sync with your group on the road.</p>
+        <h1>{joinMode === 'signin' ? 'Welcome Back' : 'Join the Retreat'}</h1>
+        <p>
+          {#if joinMode === 'signin'}
+            Already signed up? Enter your retreat code + phone number to sign in fast.
+          {:else}
+            Enter your retreat code, phone number, and basic details to sync with your group on the road.
+          {/if}
+        </p>
       </div>
 
       <form class="join-form" on:submit|preventDefault={joinRetreat}>
+        <div class="join-mode-toggle">
+          <button type="button" class:active={joinMode === 'join'} on:click={() => (joinMode = 'join')}>New Join</button>
+          <button type="button" class:active={joinMode === 'signin'} on:click={() => (joinMode = 'signin')}>Sign In</button>
+        </div>
+
         <label>
           6-character invite code
           <input
@@ -1236,11 +1250,6 @@
         </label>
 
         <label>
-          Full name
-          <input bind:value={joinName} maxlength="50" placeholder="e.g. Sarah Jenkins" required />
-        </label>
-
-        <label>
           Phone number (used for retreat identity)
           <input
             bind:value={joinPhoneNumber}
@@ -1253,20 +1262,35 @@
           />
         </label>
 
-        <div class="split-fields">
+        {#if joinMode === 'join'}
           <label>
-            Vehicle color
-            <input bind:value={joinVehicleColor} maxlength="30" placeholder="e.g. Silver" />
+            Full name
+            <input bind:value={joinName} maxlength="50" placeholder="e.g. Sarah Jenkins" required={joinMode === 'join'} />
           </label>
 
-          <label>
-            Make/model
-            <input bind:value={joinVehicleDescription} maxlength="50" placeholder="e.g. Honda CR-V" />
-          </label>
-        </div>
+          <div class="split-fields">
+            <label>
+              Vehicle color
+              <input bind:value={joinVehicleColor} maxlength="30" placeholder="e.g. Silver" />
+            </label>
+
+            <label>
+              Make/model
+              <input bind:value={joinVehicleDescription} maxlength="50" placeholder="e.g. Honda CR-V" />
+            </label>
+          </div>
+        {:else}
+          <p class="signin-hint subtle">
+            Use the same phone number you originally joined with.
+          </p>
+        {/if}
 
         <button type="submit" disabled={joining}>
-          {joining ? 'Joining…' : 'Start the Journey'}
+          {#if joining}
+            {joinMode === 'signin' ? 'Signing in…' : 'Joining…'}
+          {:else}
+            {joinMode === 'signin' ? 'Sign in' : 'Start the Journey'}
+          {/if}
         </button>
       </form>
 
@@ -1274,6 +1298,7 @@
         <p><strong>Permission notes for store review:</strong></p>
         <ul>
           <li>Your phone number is used as your retreat identity (no OTP in this version).</li>
+          <li>If you already joined, use <strong>Sign In</strong> with retreat code + the same phone number.</li>
           <li>Location is used only while the app is active so your marker can update on the convoy map.</li>
           <li>You can delete your account data anytime in Profile → Delete account &amp; data.</li>
         </ul>
@@ -1750,6 +1775,32 @@
     display: grid;
     gap: 0.85rem;
     margin-top: 1rem;
+  }
+
+  .join-mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+  }
+
+  .join-mode-toggle button {
+    background: rgba(37, 59, 108, 0.09);
+    color: inherit;
+    font-size: 0.83rem;
+  }
+
+  .join-mode-toggle button.active {
+    background: var(--accent-soft-strong);
+    color: var(--accent-main);
+  }
+
+  :global(body.theme-night) .join-mode-toggle button.active {
+    color: var(--accent-night-text);
+  }
+
+  .signin-hint {
+    margin: -0.15rem 0 0;
+    font-size: 0.78rem;
   }
 
   .split-fields {
