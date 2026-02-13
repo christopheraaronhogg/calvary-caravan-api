@@ -1708,8 +1708,16 @@
   }
 
   :global(body.theme-night) {
-    background: #0b1734;
-    color: #f5f8ff;
+    --accent-main: #c63e70;
+    --accent-main-strong: #e85a8f;
+    --accent-soft: rgba(198, 62, 112, 0.24);
+    --accent-soft-strong: rgba(198, 62, 112, 0.34);
+    --accent-night-text: #ffe9f2;
+
+    background:
+      radial-gradient(120% 90% at 14% -18%, rgba(66, 105, 188, 0.36) 0%, rgba(66, 105, 188, 0) 54%),
+      linear-gradient(180deg, #070f23 0%, #0b1838 100%);
+    color: #edf3ff;
   }
 
   :global(*) {
@@ -1739,9 +1747,9 @@
 
   :global(body.theme-night) .card,
   .app-shell.night .card {
-    border-color: rgba(117, 150, 220, 0.2);
-    background: rgba(11, 26, 58, 0.88);
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+    border-color: rgba(132, 166, 232, 0.3);
+    background: rgba(13, 28, 58, 0.9);
+    box-shadow: 0 16px 34px rgba(3, 8, 22, 0.52);
   }
 
   .eyebrow {
@@ -1761,7 +1769,7 @@
   :global(body.theme-night) .subtle,
   .app-shell.night .eyebrow,
   .app-shell.night .subtle {
-    color: #b9c8e8;
+    color: #aebfe2;
   }
 
   .join-card {
@@ -1843,9 +1851,9 @@
   :global(body.theme-night) textarea,
   .app-shell.night input,
   .app-shell.night textarea {
-    background: rgba(10, 26, 59, 0.78);
-    border-color: rgba(161, 187, 255, 0.25);
-    color: #f2f6ff;
+    background: rgba(10, 24, 49, 0.86);
+    border-color: rgba(148, 177, 236, 0.34);
+    color: #edf4ff;
   }
 
   button {
@@ -1928,9 +1936,9 @@
 
   :global(body.theme-night) .join-notes,
   .app-shell.night .join-notes {
-    border-color: rgba(153, 181, 245, 0.25);
-    background: rgba(16, 37, 74, 0.72);
-    color: #d2dffd;
+    border-color: rgba(133, 165, 227, 0.3);
+    background: rgba(14, 31, 61, 0.78);
+    color: #cfddfb;
   }
 
   .topbar {
@@ -2032,8 +2040,8 @@
   }
 
   .app-shell.night .map-canvas {
-    border-color: rgba(136, 163, 236, 0.2);
-    background: #0d2146;
+    border-color: rgba(129, 163, 228, 0.3);
+    background: #10254c;
   }
 
   .map-live {
@@ -2060,7 +2068,7 @@
   }
 
   .app-shell.night .map-attribution {
-    color: #b8c6e4;
+    color: #a8bbdf;
   }
 
   :global(.leaflet-container) {
@@ -2178,8 +2186,8 @@
   }
 
   .app-shell.night .timeline-card {
-    background: rgba(12, 27, 56, 0.72);
-    border-color: rgba(128, 154, 224, 0.24);
+    background: rgba(14, 30, 59, 0.8);
+    border-color: rgba(124, 157, 222, 0.3);
   }
 
   .timeline-card h4 {
@@ -2193,7 +2201,7 @@
   }
 
   .app-shell.night .timeline-card p {
-    color: #bdcae8;
+    color: #c6d5f3;
   }
 
   .timeline-card small {
@@ -2232,8 +2240,8 @@
   }
 
   .app-shell.night .chat-item {
-    border-color: rgba(126, 154, 230, 0.25);
-    background: rgba(12, 28, 58, 0.75);
+    border-color: rgba(120, 154, 222, 0.3);
+    background: rgba(14, 29, 58, 0.82);
   }
 
   .chat-item.alert {
@@ -2242,7 +2250,7 @@
   }
 
   .app-shell.night .chat-item.alert {
-    background: rgba(73, 23, 23, 0.72);
+    background: rgba(94, 29, 49, 0.74);
   }
 
   .chat-item header {
@@ -2380,12 +2388,12 @@
   }
 
   :global(body.theme-night) .location-sharing {
-    background: rgba(14, 31, 61, 0.72);
-    border-color: rgba(126, 152, 203, 0.26);
+    background: rgba(14, 31, 60, 0.82);
+    border-color: rgba(121, 153, 214, 0.32);
   }
 
   :global(body.theme-night) .location-sharing p {
-    color: #c4d2f1;
+    color: #c9d8f6;
   }
 
   .upload-btn {
