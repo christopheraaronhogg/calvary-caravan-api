@@ -5,7 +5,6 @@
 
   type Tab = 'map' | 'waypoints' | 'chat' | 'alert' | 'profile';
   type ComposerMode = 'chat' | 'prayer';
-  type ThemeMode = 'day' | 'night';
   type JoinMode = 'join' | 'signin';
   type ParticipantStripFilter = 'all' | 'leaders';
   type VisualMode = 'default' | 'neo';
@@ -133,7 +132,6 @@
   };
 
   const TOKEN_KEY = 'caravan_device_token';
-  const THEME_KEY = 'caravan_theme_mode';
   const VISUAL_MODE_KEY = 'caravan_visual_mode';
 
   let appReady = false;
@@ -147,7 +145,6 @@
 
   let activeTab: Tab = 'map';
   let composerMode: ComposerMode = 'chat';
-  let themeMode: ThemeMode = 'day';
   let visualMode: VisualMode = 'default';
   let online = true;
 
@@ -215,9 +212,7 @@
   $: canSendAlert = myParticipant?.is_leader === true;
   $: queuedCount = queuedMessages.length;
 
-  $: if (themeMode === 'night' && typeof document !== 'undefined') {
-    document.body.classList.add('theme-night');
-  } else if (typeof document !== 'undefined') {
+  $: if (typeof document !== 'undefined') {
     document.body.classList.remove('theme-night');
   }
 
@@ -1206,11 +1201,6 @@
   onMount(() => {
     online = navigator.onLine;
 
-    const savedTheme = localStorage.getItem(THEME_KEY) as ThemeMode | null;
-    if (savedTheme === 'day' || savedTheme === 'night') {
-      themeMode = savedTheme;
-    }
-
     const savedVisualMode = localStorage.getItem(VISUAL_MODE_KEY) as VisualMode | null;
     if (savedVisualMode === 'default' || savedVisualMode === 'neo') {
       visualMode = savedVisualMode;
@@ -1381,12 +1371,6 @@
       </form>
 
       <div class="join-footer">
-        <button type="button" class="theme-toggle" on:click={() => {
-          themeMode = themeMode === 'day' ? 'night' : 'day';
-          localStorage.setItem(THEME_KEY, themeMode);
-        }}>
-          {themeMode === 'day' ? '🌙 Night mode' : '☀️ Day mode'}
-        </button>
         <button type="button" class="theme-toggle neo-toggle" on:click={toggleVisualMode}>
           {visualMode === 'neo' ? '🧱 Neo mode on' : '🧱 Neo mode off'}
         </button>
@@ -1411,7 +1395,7 @@
     </section>
   </main>
 {:else}
-  <main class={`app-shell ${themeMode === 'night' ? 'night' : ''}`}>
+  <main class="app-shell">
     <header class="topbar card">
       <div>
         <p class="eyebrow">{retreatInfo?.name ?? 'Calvary Caravan'}</p>
@@ -1422,12 +1406,6 @@
       <div class="topbar-actions">
         <button type="button" class="ghost" on:click={toggleVisualMode} aria-label="Toggle neobrutal test mode">
           {visualMode === 'neo' ? '🧱' : '🎨'}
-        </button>
-        <button type="button" class="ghost" on:click={() => {
-          themeMode = themeMode === 'day' ? 'night' : 'day';
-          localStorage.setItem(THEME_KEY, themeMode);
-        }}>
-          {themeMode === 'day' ? '🌙' : '☀️'}
         </button>
         <button type="button" class="ghost" on:click={refreshData} disabled={refreshing}>
           {refreshing ? '…' : '↻'}
