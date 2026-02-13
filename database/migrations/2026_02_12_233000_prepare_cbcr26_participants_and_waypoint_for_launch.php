@@ -117,7 +117,7 @@ return new class extends Migration
             ->where('retreat_id', $retreatId)
             ->where(function ($query) {
                 $query->whereRaw('LOWER(name) LIKE ?', ['%chateau%'])
-                    ->orWhereRaw('LOWER(COALESCE(description, "")) LIKE ?', ['%chateau%']);
+                    ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", ['%chateau%']);
             })
             ->orderBy('waypoint_order')
             ->orderBy('id')
