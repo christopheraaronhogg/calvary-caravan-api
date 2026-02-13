@@ -1279,8 +1279,24 @@
 
       <form class="join-form" on:submit|preventDefault={joinRetreat}>
         <div class="join-mode-toggle">
-          <button type="button" class:active={joinMode === 'join'} on:click={() => (joinMode = 'join')}>New Join</button>
-          <button type="button" class:active={joinMode === 'signin'} on:click={() => (joinMode = 'signin')}>Sign In</button>
+          <button
+            type="button"
+            class="join-option"
+            class:active={joinMode === 'join'}
+            aria-pressed={joinMode === 'join'}
+            on:click={() => (joinMode = 'join')}
+          >
+            New Join
+          </button>
+          <button
+            type="button"
+            class="signin-option"
+            class:active={joinMode === 'signin'}
+            aria-pressed={joinMode === 'signin'}
+            on:click={() => (joinMode = 'signin')}
+          >
+            Sign In
+          </button>
         </div>
 
         <label>
@@ -1841,14 +1857,28 @@
   }
 
   .join-mode-toggle button {
-    background: rgba(37, 59, 108, 0.09);
-    color: inherit;
+    position: relative;
+    background: #f5f6f9;
+    color: #2a2f3a;
     font-size: 0.83rem;
+    letter-spacing: 0.02em;
+    border: 2px solid #111;
+    box-shadow: 2px 2px 0 #111;
+    opacity: 0.78;
+    transform: none;
   }
 
   .join-mode-toggle button.active {
     background: var(--accent-soft-strong);
     color: var(--accent-main);
+    border-width: 4px;
+    box-shadow: 6px 6px 0 #111;
+    opacity: 1;
+  }
+
+  .join-mode-toggle button:not(.active):hover {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 #111;
   }
 
   .signin-hint {
@@ -2682,6 +2712,45 @@
     box-shadow: 6px 6px 0 var(--neo-black);
   }
 
+  :global(body.theme-neo) .join-mode-toggle button {
+    background: var(--neo-white);
+    color: #2b2b2b;
+    border: 3px solid var(--neo-black);
+    box-shadow: 2px 2px 0 var(--neo-black);
+    opacity: 0.68;
+    transform: none;
+  }
+
+  :global(body.theme-neo) .join-mode-toggle button:not(.active):hover {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--neo-black);
+  }
+
+  :global(body.theme-neo) .join-mode-toggle button.active {
+    border: 4px solid var(--neo-black);
+    box-shadow: 6px 6px 0 var(--neo-black);
+    opacity: 1;
+  }
+
+  :global(body.theme-neo) .join-mode-toggle button.join-option.active {
+    background: var(--neo-green);
+    color: #092b05;
+  }
+
+  :global(body.theme-neo) .join-mode-toggle button.signin-option.active {
+    background: var(--neo-pink);
+    color: #6e0022;
+  }
+
+  :global(body.theme-neo) .join-mode-toggle button.active::after {
+    content: '✓';
+    position: absolute;
+    top: 4px;
+    right: 7px;
+    font-size: 0.7rem;
+    line-height: 1;
+  }
+
   :global(body.theme-neo) .ghost,
   :global(body.theme-neo) .small,
   :global(body.theme-neo) .chip-filter,
@@ -2721,7 +2790,6 @@
   :global(body.theme-neo) .tabbar button.active,
   :global(body.theme-neo) .mode-toggle button.active,
   :global(body.theme-neo) .severity-grid button.active,
-  :global(body.theme-neo) .join-mode-toggle button.active,
   :global(body.theme-neo) .chip-filter.active,
   :global(body.theme-neo) .timeline-dot,
   :global(body.theme-neo) .timeline-dot.done,
