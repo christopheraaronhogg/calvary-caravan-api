@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calvary Caravan — Account Deletion</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f8fb;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #4b5563;
+        --accent: #2563eb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f172a;
+          --card: #111827;
+          --text: #e5e7eb;
+          --muted: #9ca3af;
+          --accent: #60a5fa;
+        }
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 780px;
+        margin: 40px auto;
+        padding: 0 16px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: 0 6px 24px rgba(0,0,0,.08);
+      }
+      h1 { margin: 0 0 12px; font-size: 1.7rem; }
+      p, li { line-height: 1.6; color: var(--muted); }
+      code {
+        background: rgba(148,163,184,.2);
+        border-radius: 6px;
+        padding: 2px 6px;
+        color: var(--text);
+      }
+      a { color: var(--accent); }
+      .small { margin-top: 18px; font-size: .92rem; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="card">
+        <h1>Calvary Caravan Account Deletion</h1>
+        <p>
+          You can request account deletion from inside the app or by contacting support.
+          Deletion removes your account data for Calvary Caravan and detaches your retreat profile.
+        </p>
+
+        <h2>In-app deletion</h2>
+        <ol>
+          <li>Open Calvary Caravan.</li>
+          <li>Go to your account/settings area.</li>
+          <li>Choose <strong>Delete account</strong> and confirm.</li>
+        </ol>
+
+        <h2>API endpoint (for support-assisted deletion)</h2>
+        <p>
+          <code>POST /api/v1/account/delete</code>
+        </p>
+        <p>
+          If you need help, contact support at
+          <a href="mailto:codehogg@gmail.com">codehogg@gmail.com</a>.
+        </p>
+
+        <p class="small">
+          This page exists to satisfy app-store account-deletion policy disclosure requirements.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
