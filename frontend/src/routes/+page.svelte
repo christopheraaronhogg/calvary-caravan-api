@@ -2113,6 +2113,15 @@
     gap: 0.55rem;
     overflow-x: auto;
     padding-bottom: 0.15rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .participant-row::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
 
   .pill {
