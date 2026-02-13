@@ -529,7 +529,7 @@
                 id: ++nextStopEventId,
                 participant_id: id,
                 kind: 'stopped',
-                text: `${row.name} stopped ${placePhrase} (${formatDurationWords(candidateForSeconds)}).`,
+                text: `${row.name} looks stopped ${placePhrase}.`,
                 created_at: new Date(observedAtMs).toISOString(),
               });
             }
@@ -1758,11 +1758,11 @@
         <section class="stop-intel card" aria-live="polite">
           <header class="stop-intel-head">
             <div>
-              <h4>Stop Intelligence</h4>
-              <p>Automatic dwell detection for prolonged stops in the same area.</p>
+              <h4>Who’s parked right now</h4>
+              <p>Quick glance at vehicles that look paused.</p>
             </div>
             <small>
-              {stoppedParticipantRows.length} stopped · {movingParticipantCount} moving
+              {stoppedParticipantRows.length} parked · {movingParticipantCount} rolling
               {#if latestLocationsServerTimeIso}
                 · updated {formatTime(latestLocationsServerTimeIso)}
               {/if}
@@ -1770,26 +1770,15 @@
           </header>
 
           {#if stoppedParticipantRows.length === 0}
-            <div class="stop-intel-empty subtle">No prolonged stops detected yet.</div>
+            <div class="stop-intel-empty subtle">Looks like everyone is rolling right now.</div>
           {:else}
             <div class="stop-intel-grid">
               {#each stoppedParticipantRows as item}
                 <article class="stop-intel-item">
                   <strong>{item.row.name}</strong>
-                  <p>🛑 Stopped {item.insight.place_phrase}</p>
-                  <small>{formatDurationWords(item.insight.stopped_for_seconds)} here</small>
+                  <p>📍 {item.insight.place_phrase}</p>
+                  <small>Stopped for about {formatDurationWords(item.insight.stopped_for_seconds)}.</small>
                 </article>
-              {/each}
-            </div>
-          {/if}
-
-          {#if recentStopEvents.length > 0}
-            <div class="stop-feed" role="log" aria-label="Recent stop events">
-              {#each recentStopEvents as event}
-                <div class={`stop-feed-item ${event.kind}`}>
-                  <span aria-hidden="true">{event.kind === 'stopped' ? '🚨' : '✅'}</span>
-                  <span>{event.text}</span>
-                </div>
               {/each}
             </div>
           {/if}
@@ -1855,6 +1844,26 @@
             {/each}
           </div>
         {/if}
+
+        <section class="status-feed card" aria-live="polite">
+          <header class="status-feed-head">
+            <h4>Status feed</h4>
+            <small>Newest updates</small>
+          </header>
+
+          {#if recentStopEvents.length === 0}
+            <div class="status-feed-empty subtle">No stop updates yet.</div>
+          {:else}
+            <div class="stop-feed" role="log" aria-label="Recent stop events">
+              {#each recentStopEvents as event}
+                <div class={`stop-feed-item ${event.kind}`}>
+                  <span aria-hidden="true">{event.kind === 'stopped' ? '🛑' : '✅'}</span>
+                  <span>{event.text}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </section>
       </section>
     {:else if activeTab === 'waypoints'}
       <section class="panel card">
@@ -2560,6 +2569,38 @@
     margin-top: 0.16rem;
     color: #6b7384;
     font-size: 0.71rem;
+  }
+
+  .status-feed {
+    padding: 0.72rem;
+    display: grid;
+    gap: 0.56rem;
+    border-radius: 14px;
+    border: 1px solid rgba(64, 83, 125, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .status-feed-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  .status-feed-head h4 {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+
+  .status-feed-head small {
+    font-size: 0.69rem;
+    font-weight: 700;
+    color: #6a7284;
+    white-space: nowrap;
+  }
+
+  .status-feed-empty {
+    font-size: 0.75rem;
   }
 
   .stop-feed {
@@ -3286,6 +3327,7 @@
   :global(body.theme-neo) .participant-stop-badge,
   :global(body.theme-neo) .stop-intel,
   :global(body.theme-neo) .stop-intel-item,
+  :global(body.theme-neo) .status-feed,
   :global(body.theme-neo) .stop-feed-item,
   :global(body.theme-neo) .participant-sheet .place-label-line,
   :global(body.theme-neo) .alert-preview,
@@ -3335,6 +3377,10 @@
 
   :global(body.theme-neo) .stop-intel-item {
     background: var(--neo-white);
+  }
+
+  :global(body.theme-neo) .status-feed {
+    background: #fff7d6;
   }
 
   :global(body.theme-neo) .stop-feed-item.stopped {
