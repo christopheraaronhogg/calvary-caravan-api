@@ -210,10 +210,6 @@
   $: queuedCount = queuedMessages.length;
 
   $: if (typeof document !== 'undefined') {
-    document.body.classList.remove('theme-night');
-  }
-
-  $: if (typeof document !== 'undefined') {
     document.body.classList.add('theme-neo');
   }
 
@@ -1772,24 +1768,11 @@
     --accent-main-strong: #b30045;
     --accent-soft: rgba(143, 0, 48, 0.16);
     --accent-soft-strong: rgba(143, 0, 48, 0.22);
-    --accent-night-text: #ffd2e2;
 
     margin: 0;
     background: #f4f3ef;
     color: #1f2430;
     font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
-
-  :global(body.theme-night) {
-    --accent-main: #8f0030;
-    --accent-main-strong: #b30045;
-    --accent-soft: rgba(143, 0, 48, 0.22);
-    --accent-soft-strong: rgba(143, 0, 48, 0.32);
-    --accent-night-text: #ffdce8;
-
-    background-color: #0b1734;
-    background-image: none;
-    color: #edf3ff;
   }
 
   :global(*) {
@@ -1817,13 +1800,6 @@
     box-shadow: 0 14px 30px rgba(11, 32, 68, 0.08);
   }
 
-  :global(body.theme-night) .card,
-  .app-shell.night .card {
-    border-color: rgba(132, 166, 232, 0.3);
-    background: rgba(13, 28, 58, 0.9);
-    box-shadow: 0 16px 34px rgba(3, 8, 22, 0.52);
-  }
-
   .eyebrow {
     margin: 0;
     text-transform: uppercase;
@@ -1835,13 +1811,6 @@
   .subtle {
     margin: 0;
     color: #6a7284;
-  }
-
-  :global(body.theme-night) .eyebrow,
-  :global(body.theme-night) .subtle,
-  .app-shell.night .eyebrow,
-  .app-shell.night .subtle {
-    color: #aebfe2;
   }
 
   .join-card {
@@ -1882,10 +1851,6 @@
     color: var(--accent-main);
   }
 
-  :global(body.theme-night) .join-mode-toggle button.active {
-    color: var(--accent-night-text);
-  }
-
   .signin-hint {
     margin: -0.15rem 0 0;
     font-size: 0.78rem;
@@ -1917,15 +1882,6 @@
     background: #fdfdff;
     color: inherit;
     padding: 0.68rem 0.72rem;
-  }
-
-  :global(body.theme-night) input,
-  :global(body.theme-night) textarea,
-  .app-shell.night input,
-  .app-shell.night textarea {
-    background: rgba(10, 24, 49, 0.86);
-    border-color: rgba(148, 177, 236, 0.34);
-    color: #edf4ff;
   }
 
   button {
@@ -1999,13 +1955,6 @@
     text-underline-offset: 2px;
   }
 
-  :global(body.theme-night) .join-notes,
-  .app-shell.night .join-notes {
-    border-color: rgba(133, 165, 227, 0.3);
-    background: rgba(14, 31, 61, 0.78);
-    color: #cfddfb;
-  }
-
   .topbar {
     display: flex;
     align-items: center;
@@ -2070,12 +2019,6 @@
     color: var(--accent-main);
   }
 
-  :global(body.theme-night) .tabbar button.active,
-  .app-shell.night .tabbar button.active {
-    color: var(--accent-night-text);
-    background: var(--accent-soft-strong);
-  }
-
   .map-panel,
   .panel {
     margin-top: 0.72rem;
@@ -2104,11 +2047,6 @@
     background: #dce5f0;
   }
 
-  .app-shell.night .map-canvas {
-    border-color: rgba(129, 163, 228, 0.3);
-    background: #10254c;
-  }
-
   .map-live {
     position: absolute;
     inset: 0;
@@ -2130,10 +2068,6 @@
     color: inherit;
     text-decoration: underline;
     text-underline-offset: 2px;
-  }
-
-  .app-shell.night .map-attribution {
-    color: #a8bbdf;
   }
 
   :global(.leaflet-container) {
@@ -2171,22 +2105,6 @@
     font-size: 0.84rem;
   }
 
-  :global(body.theme-night) .map-empty,
-  :global(body.theme-night) .empty-state,
-  .app-shell.night .map-empty,
-  .app-shell.night .empty-state {
-    border-color: rgba(129, 163, 228, 0.34);
-    background: rgba(13, 28, 58, 0.88);
-    color: #e8efff;
-  }
-
-  :global(body.theme-night) .map-empty p,
-  :global(body.theme-night) .empty-state p,
-  .app-shell.night .map-empty p,
-  .app-shell.night .empty-state p {
-    color: #c6d4f2;
-  }
-
   .participant-strip-tools {
     display: flex;
     align-items: center;
@@ -2213,10 +2131,6 @@
   .chip-filter.active {
     background: var(--accent-soft-strong);
     color: var(--accent-main);
-  }
-
-  :global(body.theme-night) .chip-filter.active {
-    color: var(--accent-night-text);
   }
 
   .participant-strip-scroll-buttons {
@@ -2275,12 +2189,6 @@
     border-color: rgba(61, 87, 139, 0.22);
   }
 
-  :global(body.theme-night) .participant-chip.active,
-  .app-shell.night .participant-chip.active {
-    background: rgba(66, 103, 172, 0.2);
-    border-color: rgba(142, 172, 232, 0.35);
-  }
-
   .participant-avatar {
     width: 40px;
     height: 40px;
@@ -2327,16 +2235,6 @@
     background: #24b464;
   }
 
-  :global(body.theme-night) .participant-avatar {
-    border-color: rgba(127, 158, 223, 0.34);
-    background: rgba(25, 50, 96, 0.58);
-  }
-
-  :global(body.theme-night) .participant-status-dot {
-    border-color: rgba(12, 27, 55, 0.95);
-    box-shadow: 0 0 0 1px rgba(188, 210, 255, 0.08);
-  }
-
   .participant-name {
     font-size: 0.68rem;
     line-height: 1.06;
@@ -2365,11 +2263,6 @@
     gap: 0.6rem;
   }
 
-  .app-shell.night .timeline-card {
-    background: rgba(14, 30, 59, 0.8);
-    border-color: rgba(124, 157, 222, 0.3);
-  }
-
   .timeline-card h4 {
     margin: 0.05rem 0 0.2rem;
   }
@@ -2378,10 +2271,6 @@
     margin: 0;
     font-size: 0.84rem;
     color: #5e6779;
-  }
-
-  .app-shell.night .timeline-card p {
-    color: #c6d5f3;
   }
 
   .timeline-card small {
@@ -2419,18 +2308,9 @@
     background: rgba(255, 255, 255, 0.74);
   }
 
-  .app-shell.night .chat-item {
-    border-color: rgba(120, 154, 222, 0.3);
-    background: rgba(14, 29, 58, 0.82);
-  }
-
   .chat-item.alert {
     border-color: rgba(191, 34, 34, 0.4);
     background: rgba(255, 234, 226, 0.84);
-  }
-
-  .app-shell.night .chat-item.alert {
-    background: rgba(94, 29, 49, 0.74);
   }
 
   .chat-item header {
@@ -2567,15 +2447,6 @@
     justify-self: start;
   }
 
-  :global(body.theme-night) .location-sharing {
-    background: rgba(14, 31, 60, 0.82);
-    border-color: rgba(121, 153, 214, 0.32);
-  }
-
-  :global(body.theme-night) .location-sharing p {
-    color: #c9d8f6;
-  }
-
   .upload-btn {
     position: relative;
     overflow: hidden;
@@ -2652,16 +2523,6 @@
     font-weight: 600;
   }
 
-  :global(body.theme-night) .participant-sheet .place-label-line {
-    background: rgba(60, 108, 214, 0.2);
-    border-color: rgba(138, 170, 238, 0.45);
-    color: #dbe8ff;
-  }
-
-  :global(body.theme-night) .participant-sheet .place-label-line span {
-    color: #bdd1ff;
-  }
-
   .quick-actions {
     margin-top: 0.8rem;
     display: grid;
@@ -2695,17 +2556,6 @@
     font-size: 0.78rem;
     line-height: 1;
     box-shadow: inset 0 0 0 1px rgba(255, 244, 248, 0.24);
-  }
-
-  :global(body.theme-night) .quick-actions .alert-leader-btn {
-    background: var(--accent-main-strong);
-    color: #ffedf4;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-  }
-
-  :global(body.theme-night) .quick-actions .alert-leader-icon {
-    background: rgba(255, 228, 238, 0.3);
-    color: #fffbfc;
   }
 
   .confirm-modal blockquote {
