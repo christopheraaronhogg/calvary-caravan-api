@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PhoneNumber;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +13,7 @@ class RetreatParticipant extends Model
     protected $fillable = [
         'retreat_id',
         'name',
+        'phone_e164',
         'gender',
         'device_token',
         'expo_push_token',
@@ -29,9 +31,9 @@ class RetreatParticipant extends Model
         'last_seen_at' => 'datetime',
     ];
 
-    protected $appends = ['avatar_url'];
+    protected $appends = ['avatar_url', 'phone_display'];
 
-    protected $hidden = ['device_token', 'expo_push_token', 'avatar_path'];
+    protected $hidden = ['device_token', 'expo_push_token', 'avatar_path', 'phone_e164'];
 
     public function retreat(): BelongsTo
     {
@@ -56,10 +58,15 @@ class RetreatParticipant extends Model
 
     public function getAvatarUrlAttribute(): ?string
     {
-        if (!$this->avatar_path) {
+        if (! $this->avatar_path) {
             return null;
         }
 
         return url('storage/'.$this->avatar_path);
+    }
+
+    public function getPhoneDisplayAttribute(): ?string
+    {
+        return PhoneNumber::mask($this->phone_e164);
     }
 }

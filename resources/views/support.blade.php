@@ -93,8 +93,9 @@
             <p>If you’re having trouble during travel, try these first:</p>
             <ul>
                 <li>Make sure <strong>Location</strong> is enabled on your phone</li>
-                <li>Set Location permission to <strong>Always</strong> (or “Always Allow”)</li>
-                <li>Turn on <strong>Precise Location</strong> (iOS) for better accuracy</li>
+                <li>Set Location permission to <strong>Allow While Using</strong> (Android) or <strong>While Using the App</strong> (iOS)</li>
+                <li>Keep the app open while traveling so your live marker continues updating</li>
+                <li>Turn on <strong>Precise Location</strong> (iOS) for better waypoint and safety accuracy</li>
                 <li>If you have “No Service”, the app will resume syncing when signal returns</li>
             </ul>
         </div>
@@ -102,7 +103,7 @@
         <h2>Common issues</h2>
         <ul>
             <li><strong>App says offline:</strong> You may be out of coverage. The map and chat will update when service returns.</li>
-            <li><strong>Not seeing the group:</strong> Confirm you entered the correct 6-character retreat code.</li>
+            <li><strong>Not seeing the group:</strong> Confirm you entered the correct 6-character retreat code and your phone number.</li>
             <li><strong>Location not updating:</strong> Open <code>Settings → Location Sharing</code> and make sure it is enabled.</li>
         </ul>
 
@@ -115,6 +116,15 @@
             <li>Your phone type (iPhone/Android) + OS version</li>
             <li>What happened + when</li>
         </ul>
+
+        <h2>Account deletion</h2>
+        <p>
+            You can delete your account and retreat data directly in the app:
+            <strong>Profile → Delete account &amp; data</strong>.
+        </p>
+        <p>
+            Web instructions: <a href="/account-deletion">/account-deletion</a>
+        </p>
 
         <h2>Privacy</h2>
         <p>Privacy Policy: <a href="/privacy">/privacy</a></p>

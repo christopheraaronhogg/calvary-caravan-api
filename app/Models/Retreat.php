@@ -36,6 +36,11 @@ class Retreat extends Model
         return $this->hasMany(RetreatMessage::class);
     }
 
+    public function leaderPhoneAllowlist(): HasMany
+    {
+        return $this->hasMany(RetreatLeaderPhoneAllowlist::class);
+    }
+
     public function waypoints(): HasMany
     {
         return $this->hasMany(RetreatWaypoint::class)->orderBy('waypoint_order');
@@ -56,4 +61,3 @@ class Retreat extends Model
         return $query->active();
     }
 }
-

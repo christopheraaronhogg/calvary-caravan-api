@@ -98,23 +98,28 @@
 <body>
     <div class="container">
         <h1>Privacy Policy for Calvary Caravan</h1>
-        <p class="updated"><strong>Last Updated:</strong> January 25, 2026</p>
+        <p class="updated"><strong>Last Updated:</strong> February 12, 2026</p>
 
         <p><strong>Calvary Baptist Church</strong> ("we", "our", or "us") operates the Calvary Caravan mobile application (the "App"). This Privacy Policy describes how we collect, use, and protect your information when you use our App during church retreat events.</p>
+
+        <div class="highlight">
+            <p><strong>Identity note:</strong> The current app uses phone-number-based identity continuity without OTP verification. This is a best-effort identity model for retreat coordination.</p>
+        </div>
 
         <h2>Information We Collect</h2>
 
         <h3>Information You Provide</h3>
         <ul>
-            <li><strong>Name:</strong> Your first name for identification within the retreat group</li>
+            <li><strong>Phone Number:</strong> Required for account identity continuity (no OTP verification in the current version)</li>
+            <li><strong>Name:</strong> Your display name for identification within the retreat group</li>
             <li><strong>Vehicle Information:</strong> Description and color of your vehicle (optional) to help group members identify your car during caravan travel</li>
-            <li><strong>Gender:</strong> To display appropriate icons on the map</li>
+            <li><strong>Gender:</strong> Optional profile field if provided</li>
         </ul>
 
         <h3>Information Collected Automatically</h3>
         <ul>
             <li><strong>Location Data:</strong> Your device's GPS coordinates, speed, heading, and altitude while the App is active</li>
-            <li><strong>Device Token:</strong> A unique identifier for your device session during the retreat</li>
+            <li><strong>Device Session Token:</strong> A random token used to authorize your current app session during the retreat</li>
             <li><strong>Push Notification Token:</strong> If you enable notifications (optional)</li>
         </ul>
 
@@ -126,6 +131,8 @@
             <li><strong>Group Communication:</strong> To enable group chat messaging during the retreat</li>
             <li><strong>Caravan Coordination:</strong> To help the group stay together during travel</li>
             <li><strong>Safety:</strong> To allow retreat leaders to account for all participants</li>
+            <li><strong>Identity Continuity:</strong> To reconnect your retreat profile across devices using your phone number</li>
+            <li><strong>Leader Role Assignment:</strong> To match leadership privileges to allowlisted phone identities when configured</li>
         </ul>
 
         <h2>Data Sharing</h2>
@@ -142,9 +149,10 @@
         <h2>Data Retention</h2>
 
         <ul>
-            <li><strong>During Retreat:</strong> Your location and messages are stored temporarily on our servers</li>
-            <li><strong>After Retreat:</strong> All participant data, including locations and messages, is deleted within 30 days after the retreat ends</li>
-            <li><strong>Device Tokens:</strong> Deleted when you leave the retreat or when the retreat concludes</li>
+            <li><strong>During Retreat:</strong> Your profile, location, and messages are stored for active convoy coordination</li>
+            <li><strong>In-App Account Deletion:</strong> Deleting your account in the app immediately removes your participant profile, messages, and location records for that retreat</li>
+            <li><strong>After Retreat:</strong> Remaining participant data is deleted within 30 days after the retreat ends</li>
+            <li><strong>Device Session Tokens:</strong> Rotated on rejoin and removed when you leave or delete your account</li>
         </ul>
 
         <h2>Data Security</h2>
@@ -152,29 +160,32 @@
         <p>We implement appropriate technical measures to protect your information:</p>
         <ul>
             <li>All data transmission uses HTTPS encryption</li>
-            <li>Device tokens are randomly generated and cannot identify you personally</li>
+            <li>Device session tokens are randomly generated and rotated when you rejoin</li>
             <li>Server access is restricted to authorized church staff only</li>
         </ul>
 
-        <h2>Background Location</h2>
+        <h2>Location Access &amp; Permissions</h2>
 
-        <p>The App may collect location data even when running in the background. This is essential for:</p>
+        <p>The current app version requests location access while the app is active so convoy markers can update in real time.</p>
         <ul>
             <li>Keeping the caravan map updated during travel</li>
-            <li>Ensuring group leaders can locate all participants</li>
-            <li>Providing accurate arrival status updates</li>
+            <li>Helping leaders monitor group progress</li>
+            <li>Improving waypoint and arrival awareness</li>
         </ul>
 
-        <p>You can disable background location in your device settings at any time, though this will limit the App's functionality.</p>
+        <p>You can disable location access in your device settings at any time, though this will limit live map features.</p>
 
         <h2>Your Rights</h2>
 
         <p>You may:</p>
         <ul>
-            <li><strong>Leave the retreat</strong> at any time, which stops all data collection</li>
-            <li><strong>Disable location sharing</strong> in the App settings</li>
-            <li><strong>Request deletion</strong> of your data by contacting us</li>
+            <li><strong>Leave the retreat</strong> at any time, which stops ongoing session updates</li>
+            <li><strong>Delete your account in-app</strong> via Profile → Delete account &amp; data</li>
+            <li><strong>Disable location sharing</strong> in your device settings at any time</li>
+            <li><strong>Request manual deletion assistance</strong> by contacting us</li>
         </ul>
+
+        <p>Account deletion details: <a href="/account-deletion">/account-deletion</a></p>
 
         <h2>Children's Privacy</h2>
 

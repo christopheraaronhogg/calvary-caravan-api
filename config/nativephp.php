@@ -299,7 +299,7 @@ return [
     */
 
     'permissions' => [
-        //
+        'push_notifications' => 'Optional: receive convoy updates and emergency alerts during an active retreat.',
     ],
 
     /*

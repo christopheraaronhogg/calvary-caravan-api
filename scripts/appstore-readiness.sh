@@ -127,6 +127,7 @@ check_file "docs/app-store/submission-checklist.csv" "Submission checklist CSV"
 header "Public URLs"
 check_url "https://calvarycaravan.on-forge.com/privacy" "Privacy policy URL"
 check_url "https://calvarycaravan.on-forge.com/support" "Support URL"
+check_url "https://calvarycaravan.on-forge.com/account-deletion" "Account deletion URL"
 
 header "iOS AppIcon requirements"
 ICON_PATH="nativephp/ios/NativePHP/Assets.xcassets/AppIcon.appiconset/icon.png"

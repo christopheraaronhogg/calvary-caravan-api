@@ -1,0 +1,12 @@
+id,area,requirement,status,owner,evidence_or_path,notes
+GP1,Listing,Play metadata draft prepared,done,MiniHogg,docs/google-play/metadata.en-US.md,Paste into Play Console listing fields
+GP2,Policy,Privacy policy URL reachable,done,MiniHogg,https://calvarycaravan.on-forge.com/privacy,Validated by readiness script
+GP3,Policy,Support URL reachable,done,MiniHogg,https://calvarycaravan.on-forge.com/support,Validated by readiness script
+GP4,Policy,Account deletion instructions page reachable,blocked,MiniHogg+CodeHogg,https://calvarycaravan.on-forge.com/account-deletion,Remote URL currently returns 404 until deploy
+GP5,Identity,Phone-number-first join flow wired end-to-end,done,MiniHogg,app/Http/Controllers/Api/V1/RetreatController.php;frontend/src/routes/+page.svelte,Join reuses participant by retreat+phone and rotates token
+GP6,Deletion,In-app account deletion action + API endpoint wired,done,MiniHogg,routes/api.php;app/Http/Controllers/Api/V1/RetreatController.php;frontend/src/routes/+page.svelte,DELETE /api/v1/retreat/account with confirmation
+GP7,Permissions,Permission rationale copy present in-app + docs,done,MiniHogg,frontend/src/routes/+page.svelte;docs/google-play/data-safety-and-permissions.md,Foreground location + optional notifications documented
+GP8,Android Signing,Android keystore env + files configured,blocked,CodeHogg,.env (ANDROID_KEYSTORE_*),Owner credentials required for signed release
+GP9,Play Upload,Service account key configured for automated upload,blocked,CodeHogg,.env GOOGLE_SERVICE_KEY,Optional if manual upload is used
+GP10,Console,Play Console policy declarations completed,blocked,CodeHogg (Play Console),Data safety/app access/content rating,Owner role-gated action
+GP11,Release,Create production release and submit to review,blocked,CodeHogg (Play Console),Play Console release flow,Final owner-only click

@@ -64,7 +64,7 @@ class RetreatApiTest extends TestCase
         ])->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    'participant' => ['id', 'name', 'is_leader', 'location_sharing_enabled', 'avatar_url'],
+                    'participant' => ['id', 'name', 'phone_display', 'is_leader', 'location_sharing_enabled', 'avatar_url'],
                     'retreat' => ['id', 'name', 'destination', 'starts_at', 'ends_at', 'participant_count'],
                 ],
             ]);
@@ -122,6 +122,115 @@ class RetreatApiTest extends TestCase
             ->assertJsonPath('data.left', true);
 
         // Token should no longer work after leaving
+        $this->getJson('/api/v1/retreat/status', [
+            'X-Device-Token' => $token,
+        ])->assertStatus(401);
+    }
+
+    public function test_join_reuses_phone_identity_and_rotates_device_token(): void
+    {
+        $this->createActiveRetreat(['code' => 'TEST26']);
+
+        $firstJoin = $this->postJson('/api/v1/retreat/join', [
+            'code' => 'TEST26',
+            'name' => 'Sarah Jenkins',
+            'phone_number' => '(501) 231-5761',
+            'vehicle_color' => 'Blue',
+            'vehicle_description' => 'Honda Pilot',
+        ])->assertOk()->json('data');
+
+        $secondJoin = $this->postJson('/api/v1/retreat/join', [
+            'code' => 'TEST26',
+            'name' => 'Sarah J.',
+            'phone_number' => '+15012315761',
+            'vehicle_color' => 'White',
+            'vehicle_description' => 'Honda Pilot',
+        ])->assertOk()->json('data');
+
+        $this->assertSame($firstJoin['participant_id'], $secondJoin['participant_id']);
+        $this->assertNotSame($firstJoin['device_token'], $secondJoin['device_token']);
+
+        $this->assertDatabaseHas('retreat_participants', [
+            'id' => $firstJoin['participant_id'],
+            'phone_e164' => '+15012315761',
+            'name' => 'Sarah J.',
+            'vehicle_color' => 'White',
+        ]);
+        $this->assertDatabaseCount('retreat_participants', 1);
+
+        $this->getJson('/api/v1/retreat/status', [
+            'X-Device-Token' => $firstJoin['device_token'],
+        ])->assertStatus(401);
+
+        $this->getJson('/api/v1/retreat/status', [
+            'X-Device-Token' => $secondJoin['device_token'],
+        ])->assertOk()
+            ->assertJsonPath('data.participant.id', $firstJoin['participant_id'])
+            ->assertJsonPath('data.participant.phone_display', '+1••••••5761');
+    }
+
+    public function test_account_deletion_requires_confirmation_flag(): void
+    {
+        $this->createActiveRetreat(['code' => 'TEST26']);
+
+        $join = $this->postJson('/api/v1/retreat/join', [
+            'code' => 'TEST26',
+            'name' => 'Delete Tester',
+            'phone_number' => '+15012315761',
+        ])->assertOk()->json('data');
+
+        $this->deleteJson('/api/v1/retreat/account', [], [
+            'X-Device-Token' => $join['device_token'],
+        ])->assertStatus(422)
+            ->assertJsonStructure(['error', 'errors' => ['confirm_delete']]);
+    }
+
+    public function test_account_deletion_removes_participant_and_related_data(): void
+    {
+        $this->createActiveRetreat(['code' => 'TEST26']);
+
+        $join = $this->postJson('/api/v1/retreat/join', [
+            'code' => 'TEST26',
+            'name' => 'Delete Tester',
+            'phone_number' => '+15012315761',
+        ])->assertOk()->json('data');
+
+        $token = $join['device_token'];
+        $participantId = $join['participant_id'];
+
+        $this->postJson('/api/v1/retreat/location', [
+            'latitude' => 36.611158,
+            'longitude' => -93.306554,
+            'recorded_at' => now()->toIso8601String(),
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertOk();
+
+        $this->postJson('/api/v1/retreat/messages', [
+            'content' => 'Goodbye',
+            'message_type' => 'chat',
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertStatus(201);
+
+        $this->deleteJson('/api/v1/retreat/account', [
+            'confirm_delete' => true,
+        ], [
+            'X-Device-Token' => $token,
+        ])->assertOk()
+            ->assertJsonPath('data.deleted', true)
+            ->assertJsonPath('data.participant_id', $participantId);
+
+        $this->assertDatabaseMissing('retreat_participants', [
+            'id' => $participantId,
+        ]);
+        $this->assertDatabaseMissing('participant_locations', [
+            'participant_id' => $participantId,
+        ]);
+        $this->assertDatabaseMissing('retreat_messages', [
+            'participant_id' => $participantId,
+        ]);
+
         $this->getJson('/api/v1/retreat/status', [
             'X-Device-Token' => $token,
         ])->assertStatus(401);
@@ -285,4 +394,3 @@ class RetreatApiTest extends TestCase
         ])->assertOk();
     }
 }
-

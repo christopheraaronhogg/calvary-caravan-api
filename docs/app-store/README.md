@@ -2,6 +2,8 @@
 
 This folder is the one-stop prep pack to get **Calvary Caravan** ready for App Store review.
 
+> Google Play counterpart: `docs/google-play/`
+
 ## Goal
 Get to “ready to submit” state before paying Apple membership, so once membership/payment is active, submission is mostly click-through.
 

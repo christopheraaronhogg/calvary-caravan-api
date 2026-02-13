@@ -54,7 +54,8 @@ Detailed guides:
 
 - `docs/nativephp-mobile-bootstrap.md`
 - `docs/nativephp-svelte-bootstrap.md`
-- `docs/app-store/README.md` (App Store metadata/review/screenshots readiness kit)
+- `docs/app-store/README.md` (Apple App Store metadata/review/screenshots readiness kit)
+- `docs/google-play/README.md` (Google Play metadata/policy/readiness kit)
 
 Submission readiness checks:
 
@@ -62,6 +63,7 @@ Submission readiness checks:
 ./scripts/nativephp-preflight.sh
 ./scripts/nativephp-fix-appicon.sh
 ./scripts/appstore-readiness.sh
+./scripts/playstore-readiness.sh
 ```
 
 Web/mobile shell health checks:

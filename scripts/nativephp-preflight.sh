@@ -129,18 +129,22 @@ else
   fail "NativePHP artisan commands are unavailable"
 fi
 
-header "Env keys (required for packaging)"
+header "Env keys (cross-platform baseline)"
 if check_env_file_readable; then
   check_env_key APP_KEY required
   check_env_key NATIVEPHP_APP_ID required
   check_env_key NATIVEPHP_APP_VERSION required
   check_env_key NATIVEPHP_APP_VERSION_CODE required
   check_env_key NATIVEPHP_START_URL required
-  check_env_key IOS_TEAM_ID required
+
+  header "Android signing keys (required for Play release builds)"
   check_env_key ANDROID_KEYSTORE_FILE required
   check_env_key ANDROID_KEYSTORE_PASSWORD required
   check_env_key ANDROID_KEY_ALIAS required
   check_env_key ANDROID_KEY_PASSWORD required
+
+  header "iOS signing keys (Apple-only; keep parity)"
+  check_env_key IOS_TEAM_ID optional
 
   header "Store-upload keys (recommended)"
   check_env_key APP_STORE_API_KEY_PATH optional
@@ -151,12 +155,12 @@ else
   warn "Skipping key-level env checks because .env is unreadable"
 fi
 
-header "Apple code-signing identities"
+header "Apple code-signing identities (Apple-only parity check)"
 identity_count=$(security find-identity -v -p codesigning 2>/dev/null | awk '/valid identities found/{print $1; exit}' || echo "0")
 if [[ -n "$identity_count" && "$identity_count" =~ ^[0-9]+$ && "$identity_count" -gt 0 ]]; then
   pass "$identity_count valid code-signing identity(ies) in keychain"
 else
-  fail "No valid Apple code-signing identities found in keychain"
+  warn "No valid Apple code-signing identities found in keychain"
 fi
 
 printf "\nSummary: %b%s failure(s)%b, %b%s warning(s)%b\n" "$RED" "$fail_count" "$NC" "$YELLOW" "$warn_count" "$NC"

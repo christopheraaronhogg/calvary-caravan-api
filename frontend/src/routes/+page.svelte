@@ -35,6 +35,7 @@
       participant: {
         id: number;
         name: string;
+        phone_display: string | null;
         is_leader: boolean;
         location_sharing_enabled: boolean;
         avatar_url: string | null;
@@ -137,6 +138,7 @@
   let loadingData = false;
   let refreshing = false;
   let leaving = false;
+  let deleteAccountBusy = false;
   let uploadBusy = false;
 
   let activeTab: Tab = 'map';
@@ -146,6 +148,7 @@
 
   let joinCode = '';
   let joinName = '';
+  let joinPhoneNumber = '';
   let joinVehicleColor = '';
   let joinVehicleDescription = '';
 
@@ -477,6 +480,7 @@
         body: JSON.stringify({
           code: normalizeCode(joinCode),
           name: joinName.trim(),
+          phone_number: joinPhoneNumber.trim(),
           vehicle_color: joinVehicleColor.trim() || null,
           vehicle_description: joinVehicleDescription.trim() || null
         })
@@ -769,37 +773,70 @@
     }
   }
 
+  function resetRetreatSession(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    inRetreat = false;
+    deviceToken = '';
+    myParticipant = null;
+    retreatInfo = null;
+    participants = [];
+    waypoints = [];
+    messages = [];
+    queuedMessages = [];
+    locationSharingEnabled = true;
+    stopLocationWatch();
+
+    if (mapInstance) {
+      mapInstance.remove();
+      mapInstance = null;
+      mapLayer = null;
+    }
+
+    mapAutoFramed = false;
+    previousLocationCount = 0;
+  }
+
   async function leaveRetreat(): Promise<void> {
     if (!deviceToken) return;
     leaving = true;
 
     try {
       await api('/leave', { method: 'POST' }, deviceToken);
-      localStorage.removeItem(TOKEN_KEY);
-      inRetreat = false;
-      deviceToken = '';
-      myParticipant = null;
-      retreatInfo = null;
-      participants = [];
-      waypoints = [];
-      messages = [];
-      queuedMessages = [];
-      locationSharingEnabled = true;
-      stopLocationWatch();
-
-      if (mapInstance) {
-        mapInstance.remove();
-        mapInstance = null;
-        mapLayer = null;
-      }
-      mapAutoFramed = false;
-      previousLocationCount = 0;
-
+      resetRetreatSession();
       showStatus('You have left the retreat.');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Could not leave retreat.');
     } finally {
       leaving = false;
+    }
+  }
+
+  async function deleteAccountAndData(): Promise<void> {
+    if (!deviceToken) return;
+    if (deleteAccountBusy) return;
+
+    const confirmed = typeof window !== 'undefined'
+      ? window.confirm('Delete your account and retreat data now? This cannot be undone.')
+      : false;
+
+    if (!confirmed) {
+      return;
+    }
+
+    deleteAccountBusy = true;
+
+    try {
+      await api('/account', {
+        method: 'DELETE',
+        body: JSON.stringify({ confirm_delete: true })
+      }, deviceToken);
+
+      resetRetreatSession();
+      showStatus('Your account and retreat data were deleted.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not delete account data.');
+    } finally {
+      deleteAccountBusy = false;
     }
   }
 
@@ -828,6 +865,7 @@
     myParticipant = {
       id: 101,
       name: 'Chris Hogg',
+      phone_display: '+1••••••5761',
       is_leader: true,
       location_sharing_enabled: true,
       avatar_url: null
@@ -1099,7 +1137,7 @@
       <div class="join-header">
         <span class="eyebrow">Calvary Caravan</span>
         <h1>Join the Retreat</h1>
-        <p>Enter your retreat code and basic details to sync with your group on the road.</p>
+        <p>Enter your retreat code, phone number, and basic details to sync with your group on the road.</p>
       </div>
 
       <form class="join-form" on:submit|preventDefault={joinRetreat}>
@@ -1122,6 +1160,19 @@
           <input bind:value={joinName} maxlength="50" placeholder="e.g. Sarah Jenkins" required />
         </label>
 
+        <label>
+          Phone number (used for retreat identity)
+          <input
+            bind:value={joinPhoneNumber}
+            type="tel"
+            inputmode="tel"
+            autocomplete="tel"
+            maxlength="24"
+            placeholder="e.g. (501) 231-5761"
+            required
+          />
+        </label>
+
         <div class="split-fields">
           <label>
             Vehicle color
@@ -1138,6 +1189,22 @@
           {joining ? 'Joining…' : 'Start the Journey'}
         </button>
       </form>
+
+      <aside class="join-notes">
+        <p><strong>Permission notes for store review:</strong></p>
+        <ul>
+          <li>Your phone number is used as your retreat identity (no OTP in this version).</li>
+          <li>Location is used only while the app is active so your marker can update on the convoy map.</li>
+          <li>You can delete your account data anytime in Profile → Delete account &amp; data.</li>
+        </ul>
+        <p class="join-links">
+          <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+          ·
+          <a href="/support" target="_blank" rel="noopener noreferrer">Support</a>
+          ·
+          <a href="/account-deletion" target="_blank" rel="noopener noreferrer">Account deletion</a>
+        </p>
+      </aside>
 
       <div class="join-footer">
         <button type="button" class="theme-toggle" on:click={() => {
@@ -1213,7 +1280,7 @@
           {#if mapRows.length === 0}
             <div class="map-empty">
               <strong>No live markers yet</strong>
-              <p>Enable location permission so your marker can appear on the live map.</p>
+              <p>Allow location while using the app so your marker can appear on the live map.</p>
             </div>
           {/if}
         </div>
@@ -1372,6 +1439,11 @@
             </label>
 
             <label>
+              Phone identity
+              <input value={myParticipant?.phone_display ?? ''} readonly />
+            </label>
+
+            <label>
               Vehicle color
               <input bind:value={profileVehicleColor} placeholder="e.g. Silver" />
             </label>
@@ -1389,6 +1461,7 @@
             <h4>Location sharing is {locationSharingEnabled ? 'On' : 'Off'}</h4>
             <p>
               Turn this off anytime to remove your marker from the live map. You can still use chat and waypoints.
+              For best results, allow location while using the app in your phone settings.
             </p>
           </div>
           <button
@@ -1424,7 +1497,10 @@
 
           <button type="button" class="ghost" disabled={uploadBusy} on:click={removeProfilePhoto}>Remove photo</button>
           <button type="button" class="ghost" on:click={() => showStatus('Vehicle detail save endpoint is next backend step.')}>Save vehicle details</button>
-          <button type="button" class="danger-outline" on:click={leaveRetreat} disabled={leaving}>{leaving ? 'Leaving…' : 'Leave retreat'}</button>
+          <button type="button" class="danger-outline" on:click={leaveRetreat} disabled={leaving || deleteAccountBusy}>{leaving ? 'Leaving…' : 'Leave retreat'}</button>
+          <button type="button" class="danger" on:click={deleteAccountAndData} disabled={leaving || deleteAccountBusy}>
+            {deleteAccountBusy ? 'Deleting…' : 'Delete account & data'}
+          </button>
         </div>
       </section>
     {/if}
@@ -1671,6 +1747,48 @@
     margin-top: 0.5rem;
     background: rgba(44, 61, 103, 0.08);
     color: inherit;
+  }
+
+  .join-notes {
+    margin-top: 0.9rem;
+    border-radius: 14px;
+    border: 1px solid rgba(39, 62, 113, 0.16);
+    background: rgba(38, 61, 113, 0.06);
+    padding: 0.68rem 0.72rem;
+    font-size: 0.8rem;
+    color: #4b5364;
+  }
+
+  .join-notes p {
+    margin: 0;
+  }
+
+  .join-notes ul {
+    margin: 0.45rem 0 0;
+    padding-left: 1rem;
+    display: grid;
+    gap: 0.28rem;
+  }
+
+  .join-links {
+    margin-top: 0.55rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.32rem;
+    align-items: center;
+  }
+
+  .join-links a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  :global(body.theme-night) .join-notes,
+  .app-shell.night .join-notes {
+    border-color: rgba(153, 181, 245, 0.25);
+    background: rgba(16, 37, 74, 0.72);
+    color: #d2dffd;
   }
 
   .topbar {

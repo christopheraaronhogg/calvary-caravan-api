@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\DeleteAccountRequest;
 use App\Http\Requests\Api\JoinRetreatRequest;
 use App\Http\Requests\Api\StoreWaypointRequest;
 use App\Http\Requests\Api\UpdateProfilePhotoRequest;
@@ -10,6 +11,7 @@ use App\Models\ParticipantLocation;
 use App\Models\Retreat;
 use App\Models\RetreatParticipant;
 use App\Models\RetreatWaypoint;
+use App\Services\RetreatIdentityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -26,10 +28,13 @@ class RetreatController extends Controller
         '262026' => 'CBCR26',
     ];
 
+    public function __construct(private readonly RetreatIdentityService $identityService) {}
+
     public function join(JoinRetreatRequest $request): JsonResponse
     {
         $inputCode = strtoupper($request->validated('code'));
         $code = self::RETREAT_CODE_ALIASES[$inputCode] ?? $inputCode;
+        $phoneE164 = $request->validated('phone_number');
 
         $retreat = Retreat::where('code', $code)
             ->joinable()
@@ -41,19 +46,32 @@ class RetreatController extends Controller
             ], 422);
         }
 
-        $participant = RetreatParticipant::create([
+        $existingParticipant = RetreatParticipant::query()
+            ->where('retreat_id', $retreat->id)
+            ->where('phone_e164', $phoneE164)
+            ->first();
+
+        $participant = $existingParticipant ?? new RetreatParticipant;
+
+        $participant->forceFill([
             'retreat_id' => $retreat->id,
             'name' => $request->validated('name'),
+            'phone_e164' => $phoneE164,
             'gender' => Schema::hasColumn('retreat_participants', 'gender')
                 ? $request->validated('gender')
                 : null,
+            'is_leader' => $this->identityService->resolveLeaderFlag(
+                (int) $retreat->id,
+                $phoneE164,
+                $existingParticipant
+            ),
             'device_token' => Str::uuid()->toString(),
             'expo_push_token' => $request->validated('expo_push_token'),
             'vehicle_color' => $request->validated('vehicle_color'),
             'vehicle_description' => $request->validated('vehicle_description'),
             'joined_at' => now(),
             'last_seen_at' => now(),
-        ]);
+        ])->save();
 
         return response()->json([
             'data' => [
@@ -82,6 +100,24 @@ class RetreatController extends Controller
         return response()->json(['data' => ['left' => true]]);
     }
 
+    public function deleteAccount(DeleteAccountRequest $request): JsonResponse
+    {
+        /** @var RetreatParticipant $participant */
+        $participant = $request->attributes->get('participant');
+        $participantId = (int) $participant->id;
+        $retreatId = (int) $participant->retreat_id;
+
+        $participant->delete();
+
+        return response()->json([
+            'data' => [
+                'deleted' => true,
+                'participant_id' => $participantId,
+                'retreat_id' => $retreatId,
+            ],
+        ]);
+    }
+
     public function status(Request $request): JsonResponse
     {
         $participant = $request->attributes->get('participant');
@@ -96,6 +132,7 @@ class RetreatController extends Controller
                 'participant' => [
                     'id' => $participant->id,
                     'name' => $participant->name,
+                    'phone_display' => $participant->phone_display,
                     'is_leader' => (bool) $participant->is_leader,
                     'location_sharing_enabled' => (bool) ($participant->location_sharing_enabled ?? true),
                     'avatar_url' => $participant->avatar_url,

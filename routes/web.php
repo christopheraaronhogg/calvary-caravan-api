@@ -41,3 +41,7 @@ Route::get('/privacy', function () {
 Route::get('/support', function () {
     return view('support');
 });
+
+Route::get('/account-deletion', function () {
+    return view('account-deletion');
+});

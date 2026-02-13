@@ -25,8 +25,9 @@ How to test quickly:
 3. Open the group status/map/chat areas to verify participant updates and messaging.
 
 Important behavior:
-- Location permissions are required for live convoy visibility.
+- Location permission is used while the app is active for live convoy visibility.
 - Users can disable sharing any time in **Profile → Unshare my location** (this removes their marker from the live map).
+- Users can delete account data in-app via **Profile → Delete account & data**.
 - If network service is weak, updates resume automatically when service returns.
 
 If your team needs an alternate test code or assistance during review, contact us at the App Review contact above.

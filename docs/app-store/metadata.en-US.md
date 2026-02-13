@@ -19,9 +19,10 @@
   Calvary Caravan helps your retreat group travel together safely and stay connected from departure to arrival.
 
   Core features:
-  - Join a retreat with a simple code
+  - Join a retreat with a simple code plus phone-number identity continuity
   - View live participant location and status during travel
   - Pause/unshare your location anytime from Profile settings
+  - Delete account data anytime in Profile settings
   - Group chat for quick coordination
   - Check-ins for better convoy awareness
   - Optional profile photo and vehicle details for easy recognition
