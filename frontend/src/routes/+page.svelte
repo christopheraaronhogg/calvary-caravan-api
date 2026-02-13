@@ -1304,6 +1304,15 @@
         </button>
       </form>
 
+      <div class="join-footer">
+        <button type="button" class="theme-toggle" on:click={() => {
+          themeMode = themeMode === 'day' ? 'night' : 'day';
+          localStorage.setItem(THEME_KEY, themeMode);
+        }}>
+          {themeMode === 'day' ? '🌙 Night mode' : '☀️ Day mode'}
+        </button>
+      </div>
+
       <aside class="join-notes">
         <p><strong>Permission notes for store review:</strong></p>
         <ul>
@@ -1320,15 +1329,6 @@
           <a href="/account-deletion" target="_blank" rel="noopener noreferrer">Account deletion</a>
         </p>
       </aside>
-
-      <div class="join-footer">
-        <button type="button" class="theme-toggle" on:click={() => {
-          themeMode = themeMode === 'day' ? 'night' : 'day';
-          localStorage.setItem(THEME_KEY, themeMode);
-        }}>
-          {themeMode === 'day' ? '🌙 Night mode' : '☀️ Day mode'}
-        </button>
-      </div>
     </section>
   </main>
 {:else}
