@@ -1490,6 +1490,7 @@
                   {:else}
                     <span class="participant-avatar-glyph" aria-hidden="true">{row.is_leader ? '⭐' : '👤'}</span>
                   {/if}
+                  <span class="participant-status-dot" aria-hidden="true"></span>
                 </span>
                 <span class="participant-name">{row.name}</span>
               </button>
@@ -2252,10 +2253,10 @@
   .participant-row {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(78px, 92px);
-    gap: 0.45rem;
+    grid-auto-columns: minmax(66px, 76px);
+    gap: 0.18rem;
     overflow-x: auto;
-    padding: 0.08rem 0.05rem 0.15rem;
+    padding: 0.06rem 0.04rem 0.12rem;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -2273,10 +2274,10 @@
     display: grid;
     justify-items: center;
     align-content: start;
-    gap: 0.22rem;
-    border-radius: 14px;
+    gap: 0.14rem;
+    border-radius: 12px;
     border: 1px solid transparent;
-    padding: 0.2rem 0.16rem 0.26rem;
+    padding: 0.12rem 0.08rem 0.18rem;
   }
 
   .participant-chip.active {
@@ -2291,13 +2292,13 @@
   }
 
   .participant-avatar {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 999px;
     display: grid;
     place-items: center;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     border: 1px solid rgba(54, 83, 134, 0.26);
     background: rgba(42, 65, 112, 0.12);
   }
@@ -2307,10 +2308,11 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    border-radius: 999px;
   }
 
   .participant-avatar-glyph {
-    font-size: 1.02rem;
+    font-size: 0.94rem;
     line-height: 1;
   }
 
@@ -2318,19 +2320,20 @@
     box-shadow: 0 0 0 2px rgba(198, 62, 112, 0.24);
   }
 
-  .participant-avatar::after {
-    content: '';
+  .participant-status-dot {
     position: absolute;
-    right: 1px;
-    bottom: 1px;
-    width: 9px;
-    height: 9px;
+    right: -3px;
+    bottom: -2px;
+    width: 11px;
+    height: 11px;
     border-radius: 999px;
     border: 2px solid #f6f7fb;
     background: #8f9bb5;
+    z-index: 3;
+    box-shadow: 0 0 0 1px rgba(8, 16, 33, 0.1);
   }
 
-  .participant-avatar.online::after {
+  .participant-avatar.online .participant-status-dot {
     background: #24b464;
   }
 
@@ -2339,8 +2342,9 @@
     background: rgba(25, 50, 96, 0.58);
   }
 
-  :global(body.theme-night) .participant-avatar::after {
+  :global(body.theme-night) .participant-status-dot {
     border-color: rgba(12, 27, 55, 0.95);
+    box-shadow: 0 0 0 1px rgba(188, 210, 255, 0.08);
   }
 
   .participant-name {
