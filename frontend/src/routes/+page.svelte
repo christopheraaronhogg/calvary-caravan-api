@@ -223,6 +223,11 @@
   }
 
   $: if (mapInstance && inRetreat && activeTab === 'map') {
+    // Keep map markers in sync with live participant refreshes.
+    // (Svelte only tracks vars referenced directly in this block.)
+    mapRows;
+    retreatInfo?.destination?.lat;
+    retreatInfo?.destination?.lng;
     renderLiveMap();
   }
 
