@@ -2683,8 +2683,8 @@
   :global(body.theme-neo) .upload-btn {
     border: 4px solid var(--neo-black);
     border-radius: 0;
-    background: var(--neo-green);
-    color: var(--neo-black);
+    background: var(--neo-red);
+    color: var(--neo-white);
     font-family: 'Archivo Black', 'Space Grotesk', 'Arial Black', sans-serif;
     font-weight: 900;
     text-transform: uppercase;
@@ -2733,8 +2733,8 @@
   }
 
   :global(body.theme-neo) .join-mode-toggle button.join-option.active {
-    background: var(--neo-green);
-    color: #092b05;
+    background: var(--neo-red);
+    color: var(--neo-white);
   }
 
   :global(body.theme-neo) .join-mode-toggle button.signin-option.active {
