@@ -7,7 +7,6 @@
   type ComposerMode = 'chat' | 'prayer';
   type JoinMode = 'join' | 'signin';
   type ParticipantStripFilter = 'all' | 'leaders';
-  type VisualMode = 'default' | 'neo';
 
   type PlaceLabel = {
     label: string;
@@ -132,7 +131,6 @@
   };
 
   const TOKEN_KEY = 'caravan_device_token';
-  const VISUAL_MODE_KEY = 'caravan_visual_mode';
 
   let appReady = false;
   let inRetreat = false;
@@ -145,7 +143,6 @@
 
   let activeTab: Tab = 'map';
   let composerMode: ComposerMode = 'chat';
-  let visualMode: VisualMode = 'default';
   let online = true;
 
   let joinMode: JoinMode = 'join';
@@ -216,10 +213,8 @@
     document.body.classList.remove('theme-night');
   }
 
-  $: if (visualMode === 'neo' && typeof document !== 'undefined') {
+  $: if (typeof document !== 'undefined') {
     document.body.classList.add('theme-neo');
-  } else if (typeof document !== 'undefined') {
-    document.body.classList.remove('theme-neo');
   }
 
   $: if (inRetreat && activeTab === 'map' && mapElement) {
@@ -243,11 +238,6 @@
 
   function normalizeCode(code: string): string {
     return code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-  }
-
-  function toggleVisualMode(): void {
-    visualMode = visualMode === 'default' ? 'neo' : 'default';
-    localStorage.setItem(VISUAL_MODE_KEY, visualMode);
   }
 
   function formatTime(iso: string | null | undefined): string {
@@ -1201,25 +1191,11 @@
   onMount(() => {
     online = navigator.onLine;
 
-    const savedVisualMode = localStorage.getItem(VISUAL_MODE_KEY) as VisualMode | null;
-    if (savedVisualMode === 'default' || savedVisualMode === 'neo') {
-      visualMode = savedVisualMode;
-    }
-
     void (async () => {
       const params = new URLSearchParams(window.location.search);
       const useDemo = params.get('demo') === '1';
       const forceSignIn = params.get('signin') === '1' || params.get('auth') === 'signin';
       const forceAuthScreen = forceSignIn || params.get('reauth') === '1' || params.get('reset') === '1';
-      const forceNeo = params.get('neo');
-
-      if (forceNeo === '1' || forceNeo?.toLowerCase() === 'true') {
-        visualMode = 'neo';
-        localStorage.setItem(VISUAL_MODE_KEY, visualMode);
-      } else if (forceNeo === '0' || forceNeo?.toLowerCase() === 'false') {
-        visualMode = 'default';
-        localStorage.setItem(VISUAL_MODE_KEY, visualMode);
-      }
 
       if (useDemo) {
         enableDemoMode();
@@ -1370,12 +1346,6 @@
         </button>
       </form>
 
-      <div class="join-footer">
-        <button type="button" class="theme-toggle neo-toggle" on:click={toggleVisualMode}>
-          {visualMode === 'neo' ? '🧱 Neo mode on' : '🧱 Neo mode off'}
-        </button>
-      </div>
-
       <aside class="join-notes">
         <p><strong>Permission notes for store review:</strong></p>
         <ul>
@@ -1404,9 +1374,6 @@
       </div>
 
       <div class="topbar-actions">
-        <button type="button" class="ghost" on:click={toggleVisualMode} aria-label="Toggle neobrutal test mode">
-          {visualMode === 'neo' ? '🧱' : '🎨'}
-        </button>
         <button type="button" class="ghost" on:click={refreshData} disabled={refreshing}>
           {refreshing ? '…' : '↻'}
         </button>
@@ -1995,23 +1962,6 @@
     background: transparent;
     border: 1px solid rgba(191, 34, 34, 0.52);
     color: #bf2222;
-  }
-
-  .join-footer {
-    margin-top: 0.5rem;
-    display: grid;
-    gap: 0.45rem;
-  }
-
-  .theme-toggle {
-    width: 100%;
-    margin-top: 0;
-    background: rgba(44, 61, 103, 0.08);
-    color: inherit;
-  }
-
-  .neo-toggle {
-    background: rgba(143, 0, 48, 0.1);
   }
 
   .join-notes {
