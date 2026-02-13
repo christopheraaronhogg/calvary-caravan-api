@@ -247,6 +247,26 @@
     return `${(distance / 1000).toFixed(1)}km`;
   }
 
+  function participantNearLabel(row: ParticipantLocationRow): string {
+    const label = row.location?.place?.label?.trim();
+    if (label) return label;
+
+    if (hasValidCoords(row.location?.lat, row.location?.lng)) {
+      return `Near ${Number(row.location!.lat).toFixed(3)}, ${Number(row.location!.lng).toFixed(3)}`;
+    }
+
+    return 'Location unavailable';
+  }
+
+  function escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
   function hasValidCoords(lat: number | null | undefined, lng: number | null | undefined): boolean {
     if (lat === null || lat === undefined || lng === null || lng === undefined) return false;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
@@ -340,7 +360,10 @@
         fillOpacity: 0.9
       });
 
-      marker.bindPopup(`<strong>${row.name}</strong><br>${formatAgo(row.last_seen_seconds_ago)}`);
+      const placeLabel = participantNearLabel(row);
+      marker.bindPopup(
+        `<strong>${escapeHtml(row.name)}</strong><br>${escapeHtml(placeLabel)}<br>${escapeHtml(formatAgo(row.last_seen_seconds_ago))}`
+      );
       marker.addTo(mapLayer);
       points.push([lat, lng]);
     }
@@ -670,6 +693,50 @@
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to send emergency alert.');
     }
+  }
+
+  function focusParticipantOnMap(row: ParticipantLocationRow): void {
+    if (activeTab !== 'map') {
+      activeTab = 'map';
+    }
+
+    if (!hasValidCoords(row.location?.lat, row.location?.lng)) {
+      setError(`${row.name} does not have a live location yet.`);
+      return;
+    }
+
+    const lat = Number(row.location!.lat);
+    const lng = Number(row.location!.lng);
+    const placeLabel = participantNearLabel(row);
+
+    const applyFocus = () => {
+      if (!mapInstance) return;
+
+      const nextZoom = typeof mapInstance.getZoom === 'function'
+        ? Math.max(13, Number(mapInstance.getZoom() ?? 13))
+        : 13;
+
+      mapInstance.setView([lat, lng], nextZoom, {
+        animate: true
+      });
+
+      if (mapLibrary?.popup) {
+        mapLibrary
+          .popup({ closeButton: false, offset: [0, -10] })
+          .setLatLng([lat, lng])
+          .setContent(`<strong>${escapeHtml(row.name)}</strong><br>${escapeHtml(placeLabel)}`)
+          .openOn(mapInstance);
+      }
+    };
+
+    if (!mapInstance) {
+      void ensureMapReady().then(() => {
+        applyFocus();
+      });
+      return;
+    }
+
+    applyFocus();
   }
 
   function openParticipant(row: ParticipantLocationRow): void {
@@ -1311,9 +1378,12 @@
 
         <div class="participant-row">
           {#each participants as row}
-            <button type="button" class="pill" on:click={() => openParticipant(row)}>
+            <button type="button" class="pill" on:click={() => focusParticipantOnMap(row)}>
               <span>{row.is_leader ? '⭐' : '👤'}</span>
-              <span>{row.name}</span>
+              <span class="pill-main">
+                <span class="pill-name">{row.name}</span>
+                <small class="pill-near">{participantNearLabel(row)}</small>
+              </span>
               <small>{formatAgo(row.last_seen_seconds_ago)}</small>
             </button>
           {/each}
@@ -1989,9 +2059,35 @@
     border-radius: 14px;
   }
 
+  .pill-main {
+    display: grid;
+    gap: 0.08rem;
+    min-width: 0;
+  }
+
+  .pill-name {
+    font-weight: 620;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pill-near {
+    opacity: 0.76;
+    font-size: 0.69rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .pill small {
     opacity: 0.75;
     font-size: 0.73rem;
+  }
+
+  .pill-main .pill-near {
+    font-size: 0.69rem;
+    opacity: 0.76;
   }
 
   .timeline {
