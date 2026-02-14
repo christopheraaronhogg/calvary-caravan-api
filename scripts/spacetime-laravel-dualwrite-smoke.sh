@@ -97,11 +97,17 @@ if ! curl -s -o /dev/null "${API_BASE}/api/health"; then
   exit 1
 fi
 
-join_response="$(curl -s -X POST "${API_BASE}/api/v1/retreat/join" -H "Content-Type: application/json" -d '{"code":"SMOKE1","name":"Mirror Tester"}')"
+smoke_phone="${SPACETIME_SMOKE_PHONE:-+15015550101}"
+join_payload="$(cat <<JSON
+{"code":"SMOKE1","auth_mode":"join","name":"Mirror Tester","phone_number":"${smoke_phone}"}
+JSON
+)"
+join_response="$(curl -s -X POST "${API_BASE}/api/v1/retreat/join" -H "Content-Type: application/json" -d "$join_payload")"
 token="$(php -r '$j=json_decode(stream_get_contents(STDIN),true); echo $j["data"]["device_token"] ?? "";' <<<"$join_response")"
 participant_id="$(php -r '$j=json_decode(stream_get_contents(STDIN),true); echo $j["data"]["participant_id"] ?? "";' <<<"$join_response")"
+retreat_id="$(php -r '$j=json_decode(stream_get_contents(STDIN),true); echo $j["data"]["retreat"]["id"] ?? "";' <<<"$join_response")"
 
-if [[ -z "$token" || -z "$participant_id" ]]; then
+if [[ -z "$token" || -z "$participant_id" || -z "$retreat_id" ]]; then
   echo "Join flow failed: $join_response" >&2
   exit 1
 fi
@@ -116,10 +122,12 @@ if [[ "$recorded_flag" != "true" ]]; then
 fi
 
 laravel_source_count="$(sqlite3 "$SQLITE_DB" "select count(*) from participant_locations;")"
-spacetime_rows="$(spacetime call --server "$SERVER_NAME" --anonymous -y "$DB_NAME" list_latest_locations_for_retreat 1)"
+spacetime_rows="$(spacetime call --server "$SERVER_NAME" --anonymous -y "$DB_NAME" list_latest_locations_for_retreat "$retreat_id")"
 
 if [[ "$spacetime_rows" != *"${participant_id}"* ]]; then
-  echo "Spacetime mirror missing participant ${participant_id}: ${spacetime_rows}" >&2
+  echo "Spacetime mirror missing participant ${participant_id} for retreat ${retreat_id}: ${spacetime_rows}" >&2
+  echo "Laravel log: $SERVER_LOG" >&2
+  [[ -n "$SPACETIME_LOG" ]] && echo "Spacetime log: $SPACETIME_LOG" >&2
   exit 1
 fi
 
